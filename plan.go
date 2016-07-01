@@ -14,7 +14,6 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/swarm"
-	"github.com/kr/pretty"
 	"github.com/urfave/cli"
 )
 
@@ -70,13 +69,13 @@ func plan(c *cli.Context) error {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
 
-	desired := getBundleServicesSpec(bundle, stackName)
+	expected := getBundleServicesSpec(bundle, stackName)
 	current := getSwarmServicesSpecForStack(services, stackName)
 
-	sort.Sort(desired)
+	sort.Sort(expected)
 	sort.Sort(current)
 
-	log.Println(pretty.Diff(desired, current)[0])
+	PrintServiceSpecDiff(current, expected)
 
 	return nil
 }
@@ -91,7 +90,6 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 					Image: service.Image,
 				},
 			},
-			Networks: []swarm.NetworkAttachmentConfig{},
 			Mode: swarm.ServiceMode{
 				Replicated: &swarm.ReplicatedService{
 					Replicas: &Replica1,
