@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"sort"
 
 	"golang.org/x/net/context"
 
@@ -14,20 +13,13 @@ import (
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/swarm"
+	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
 
 var Replica1 uint64 = 1
 
-type Services []swarm.ServiceSpec
-
-func (s Services) Len() int {
-	return len(s)
-}
-func (s Services) Less(i, j int) bool {
-	return s[i].Name < s[j].Name
-}
-func (s Services) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+type Services map[string]swarm.ServiceSpec
 
 func plan(c *cli.Context) error {
 	stackName := c.Args().Get(0)
@@ -72,12 +64,36 @@ func plan(c *cli.Context) error {
 	expected := getBundleServicesSpec(bundle, stackName)
 	current := getSwarmServicesSpecForStack(services, stackName)
 
-	sort.Sort(expected)
-	sort.Sort(current)
-
-	PrintServiceSpecDiff(current, expected)
+	cyan := color.New(color.FgCyan)
+	for n, es := range expected {
+		cyan.Printf("\n%s\n", es.Name)
+		if cs, found := current[n]; !found {
+			// New service to add
+		} else {
+			PrintServiceSpecDiff(cs, es)
+		}
+	}
+	/*
+		max := math.Max(len(current), len(expected))
+		for i := 0; i < max; i++ {
+			if i >= len(current) {
+				// New service to add
+			} else if i >= len(expected) {
+				// Service to remove
+			} else if current[i] != expected[i] {
+				// Service to remove and service to add
+			} else {
+			}
+		}*/
 
 	return nil
+}
+
+func safeDereference(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }
 
 func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services {
@@ -87,7 +103,13 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 		spec := swarm.ServiceSpec{
 			TaskTemplate: swarm.TaskSpec{
 				ContainerSpec: swarm.ContainerSpec{
-					Image: service.Image,
+					Image:   service.Image,
+					Labels:  service.Labels,
+					Command: service.Command,
+					Args:    service.Args,
+					Env:     service.Env,
+					Dir:     safeDereference(service.WorkingDir),
+					User:    safeDereference(service.User),
 				},
 			},
 			Mode: swarm.ServiceMode{
@@ -99,20 +121,9 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stack}
 		spec.Name = fmt.Sprintf("%s_%s", stack, name)
 
-		specs = append(specs, spec)
+		specs[spec.Name] = spec
 	}
 	return specs
-	/*
-		Image      string
-		Command    []string          `json:",omitempty"`
-		Args       []string          `json:",omitempty"`
-		Env        []string          `json:",omitempty"`
-		Labels     map[string]string `json:",omitempty"`
-		Ports      []Port            `json:",omitempty"`
-		WorkingDir *string           `json:",omitempty"`
-		User       *string           `json:",omitempty"`
-		Networks   []string          `json:",omitempty"`
-	*/
 }
 
 func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Services {
@@ -121,7 +132,7 @@ func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Servic
 	for _, service := range services {
 		log.Println(service.Spec.Labels["com.docker.stack.namespace"])
 		if service.Spec.Labels["com.docker.stack.namespace"] == stack {
-			specs = append(specs, service.Spec)
+			specs[service.Spec.Name] = service.Spec
 		}
 	}
 

@@ -6,13 +6,27 @@ import (
 	"math"
 	"reflect"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
-func print(depth int, field, msg string) {
+var red *color.Color
+var green *color.Color
+var yellow *color.Color
+var normal *color.Color
+
+func init() {
+	red = color.New(color.FgRed)
+	green = color.New(color.FgGreen)
+	yellow = color.New(color.FgYellow)
+	normal = color.New(color.FgWhite)
+}
+
+func print(c *color.Color, depth int, field, msg string) {
 	if field != "" {
-		fmt.Printf("%s%s: %s", strings.Repeat(" ", depth*2), field, msg)
+		c.Printf("%s%s: %s", strings.Repeat(" ", depth*2), field, msg)
 	} else {
-		fmt.Printf("%s%s", strings.Repeat(" ", depth*2), msg)
+		c.Printf("%s%s", strings.Repeat(" ", depth*2), msg)
 	}
 }
 func PrintServiceSpecDiff(current, expected interface{}) {
@@ -35,7 +49,7 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 
 		c := int(math.Max(float64(currentValue.Len()), float64(expectedValue.Len())))
 
-		print(depth, field, "[\n")
+		print(normal, depth, field, "[\n")
 		for i := 0; i < c; i++ {
 			if i >= currentValue.Len() {
 				_printServiceSpecDiff(depth, "", reflect.Indirect(reflect.New(expectedValue.Index(i).Type())).Interface(), expectedValue.Index(i).Interface())
@@ -46,32 +60,32 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 			}
 			fmt.Print(",\n")
 		}
-		print(depth, "", "]")
+		print(normal, depth, "", "]")
 	case reflect.Map:
 	case reflect.Ptr:
 	case reflect.Struct:
 		currentValue := reflect.ValueOf(current)
 		expectedValue := reflect.ValueOf(expected)
 
-		print(depth, field, "{\n")
+		print(normal, depth, field, "{\n")
 		for i := 0; i < currentValue.NumField(); i++ {
 			field = currentValue.Type().Field(i).Name
 			_printServiceSpecDiff(depth, field, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
 			fmt.Print("\n")
 		}
-		print(depth, "", "}\n")
+		print(normal, depth, "", "}\n")
 	default:
 		sc := fmt.Sprintf("%s", current)
 		se := fmt.Sprintf("%s", expected)
 
 		if sc == se {
-			print(depth, field, fmt.Sprintf(`    "%s" => "%s"`, sc, se))
+			print(normal, depth, field, fmt.Sprintf(`    "%s" => "%s"`, sc, se))
 		} else if sc == "" {
-			print(depth, field, fmt.Sprintf(`+   "" => "%s"`, se))
+			print(green, depth, field, fmt.Sprintf(`+   "%s"`, se))
 		} else if se == "" {
-			print(depth, field, fmt.Sprintf(`-   "%s" => ""`, sc))
+			print(red, depth, field, fmt.Sprintf(`-   "%s"`, sc))
 		} else {
-			print(depth, field, fmt.Sprintf(`+/- "%s" => "%s"`, sc, se))
+			print(yellow, depth, field, fmt.Sprintf(`+/- "%s" => "%s"`, sc, se))
 		}
 	}
 	/*

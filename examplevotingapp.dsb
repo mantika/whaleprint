@@ -35,6 +35,9 @@
       ]
     }, 
     "vote": {
+      "Args": [
+        "lala"
+      ], 
       "Image": "docker/example-voting-app-vote@sha256:20faa449b42b5f0797b1b1a3028a2dd7ac0ece00b0d100b19e6dff4d1a0af2e3", 
       "Networks": [
         "default"
