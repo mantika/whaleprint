@@ -31,7 +31,7 @@ func plan(c *cli.Context) error {
 
 	if dabLocation == "" {
 		// Assume it is called as the stack name
-		dabLocation = fmt.Sprintf("%s.dsb", stackName)
+		dabLocation = fmt.Sprintf("%s.dab", stackName)
 	}
 
 	var dabReader io.Reader
@@ -68,6 +68,7 @@ func plan(c *cli.Context) error {
 	for n, es := range expected {
 		cyan.Printf("\n%s\n", es.Name)
 		if cs, found := current[n]; !found {
+			fmt.Println("Service not found in swarm")
 			// New service to add
 		} else {
 			PrintServiceSpecDiff(cs, es)

@@ -58,9 +58,8 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 			} else {
 				_printServiceSpecDiff(depth, "", currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
 			}
-			fmt.Print(",\n")
 		}
-		print(normal, depth, "", "]")
+		print(normal, depth, "", "]\n")
 	case reflect.Map:
 	case reflect.Ptr:
 	case reflect.Struct:
@@ -71,7 +70,6 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 		for i := 0; i < currentValue.NumField(); i++ {
 			field = currentValue.Type().Field(i).Name
 			_printServiceSpecDiff(depth, field, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
-			fmt.Print("\n")
 		}
 		print(normal, depth, "", "}\n")
 	default:
@@ -87,6 +85,7 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 		} else {
 			print(yellow, depth, field, fmt.Sprintf(`+/- "%s" => "%s"`, sc, se))
 		}
+		fmt.Print("\n")
 	}
 	/*
 		Image string
