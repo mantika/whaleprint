@@ -11,8 +11,13 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
-			Name:   "plan",
-			Usage:  "Plan usage",
+			Name:  "plan",
+			Usage: "Plan DAB whaleprint",
+			ArgsUsage: `STACK
+
+Prints an execultion plan to review before applying changes.
+Whaleprint will use the stack name to load the DAB file.
+			`,
 			Action: plan,
 			Flags: []cli.Flag{
 				cli.StringFlag{
@@ -22,8 +27,13 @@ func main() {
 			},
 		},
 		{
-			Name:   "apply",
-			Usage:  "Apply usage",
+			Name:  "apply",
+			Usage: "Apply DAB whaleprint",
+			ArgsUsage: `STACK
+
+Prints an execultion plan to review before applying changes.
+Whaleprint will use the stack name to load the DAB file.
+			`,
 			Action: apply,
 			Flags: []cli.Flag{
 				cli.StringFlag{
