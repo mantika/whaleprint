@@ -22,11 +22,11 @@ func init() {
 	normal = color.New(color.FgWhite)
 }
 
-func print(c *color.Color, depth int, field, msg string) {
+func print(c *color.Color, depth int, field, action, msg string) {
 	if field != "" {
-		c.Printf("%s%s: %s", strings.Repeat(" ", depth*2), field, msg)
+		c.Printf("%s%s%s: %s", action, strings.Repeat(" ", depth*2), field, msg)
 	} else {
-		c.Printf("%s%s", strings.Repeat(" ", depth*2), msg)
+		c.Printf("%s%s%s", action, strings.Repeat(" ", depth*2), msg)
 	}
 }
 func PrintServiceSpecDiff(current, expected interface{}) {
@@ -49,7 +49,7 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 
 		c := int(math.Max(float64(currentValue.Len()), float64(expectedValue.Len())))
 
-		print(normal, depth, field, "[\n")
+		print(normal, depth, field, "", "[\n")
 		for i := 0; i < c; i++ {
 			if i >= currentValue.Len() {
 				_printServiceSpecDiff(depth, "", reflect.Indirect(reflect.New(expectedValue.Index(i).Type())).Interface(), expectedValue.Index(i).Interface())
@@ -59,31 +59,120 @@ func _printServiceSpecDiff(depth int, field string, current, expected interface{
 				_printServiceSpecDiff(depth, "", currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
 			}
 		}
-		print(normal, depth, "", "]\n")
+		print(normal, depth, "", "", "]\n")
 	case reflect.Map:
+		currentValue := reflect.ValueOf(current)
+		expectedValue := reflect.ValueOf(expected)
+		print(normal, depth, field, "", "{\n")
+
+		for _, k := range currentValue.MapKeys() {
+			ev := expectedValue.MapIndex(k)
+			var expectedKeyValue interface{}
+			if ev.IsValid() {
+				expectedKeyValue = ev.Interface()
+			} else {
+				expectedKeyValue = reflect.Indirect(reflect.New(currentValue.MapIndex(k).Type())).Interface()
+			}
+			_printServiceSpecDiff(depth, fmt.Sprintf("%s", k.Interface()), currentValue.MapIndex(k).Interface(), expectedKeyValue)
+		}
+
+		for _, k := range expectedValue.MapKeys() {
+			cv := currentValue.MapIndex(k)
+			var currentKeyValue interface{}
+			if cv.IsValid() {
+				continue
+			} else {
+				currentKeyValue = reflect.Indirect(reflect.New(expectedValue.MapIndex(k).Type())).Interface()
+			}
+			_printServiceSpecDiff(depth, fmt.Sprintf("%s", k.Interface()), currentKeyValue, expectedValue.MapIndex(k).Interface())
+		}
+
+		print(normal, depth, "", "", "}\n")
 	case reflect.Ptr:
+		currentValue := reflect.ValueOf(current)
+		expectedValue := reflect.ValueOf(expected)
+
+		var dcv interface{}
+		var dev interface{}
+
+		if currentValue.IsNil() {
+			dcv = reflect.Zero(currentType.Elem()).Interface()
+		} else {
+			dcv = reflect.Indirect(currentValue).Interface()
+		}
+
+		if expectedValue.IsNil() {
+			dev = reflect.Zero(expectedType.Elem()).Interface()
+		} else {
+			dev = reflect.Indirect(expectedValue).Interface()
+		}
+
+		_printServiceSpecDiff(depth, "", dcv, dev)
+
+		/*
+			                current          expected
+					nil              nil
+					*time.Duration   nil
+					nil              *time.Duration
+					*time.Duration   *time.Duration
+
+
+
+			                *time.Duration
+					time.Duration
+
+					currentValue := reflect.ValueOf(current)
+					expectedValue := reflect.ValueOf(expected)
+
+					var curr, exp interface{}
+
+					if !reflect.Indirect(currentValue).IsValid() {
+						curr = nil
+					} else {
+						curr = currentValue.Interface()
+					}
+
+					if !reflect.Indirect(expectedValue).IsValid() {
+						curr = nil
+					} else {
+						curr = currentValue.Interface()
+					}
+
+					_printServiceSpecDiff(depth, "", curr, exp)
+
+		*/
 	case reflect.Struct:
 		currentValue := reflect.ValueOf(current)
 		expectedValue := reflect.ValueOf(expected)
 
-		print(normal, depth, field, "{\n")
+		first := true
 		for i := 0; i < currentValue.NumField(); i++ {
-			field = currentValue.Type().Field(i).Name
-			_printServiceSpecDiff(depth, field, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
+			f := currentValue.Type().Field(i)
+			if f.PkgPath == "" {
+				field = f.Name
+				if first {
+					print(normal, depth, field, "", "{\n")
+					first = false
+				}
+				_printServiceSpecDiff(depth, field, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
+			}
+
 		}
-		print(normal, depth, "", "}\n")
+		if !first {
+			print(normal, depth, "", "", "}\n")
+		}
 	default:
-		sc := fmt.Sprintf("%s", current)
-		se := fmt.Sprintf("%s", expected)
+		sc := fmt.Sprint(current)
+		se := fmt.Sprint(expected)
 
 		if sc == se {
-			print(normal, depth, field, fmt.Sprintf(`    "%s" => "%s"`, sc, se))
+			print(normal, depth, field, "", fmt.Sprintf(`"%s" => "%s"`, sc, se))
 		} else if sc == "" {
-			print(green, depth, field, fmt.Sprintf(`+   "%s"`, se))
+			print(green, depth, field, "+", fmt.Sprintf(`"%s"`, se))
 		} else if se == "" {
-			print(red, depth, field, fmt.Sprintf(`-   "%s"`, sc))
+			print(red, depth, field, "-", fmt.Sprintf(`"%s"`, sc))
 		} else {
-			print(yellow, depth, field, fmt.Sprintf(`+/- "%s" => "%s"`, sc, se))
+			print(yellow, depth, field, "+/-", fmt.Sprintf(`"%s" => "%s"`, sc, se))
 		}
 		fmt.Print("\n")
 	}
