@@ -64,16 +64,24 @@ func plan(c *cli.Context) error {
 	expected := getBundleServicesSpec(bundle, stackName)
 	current := getSwarmServicesSpecForStack(services, stackName)
 
-	cyan := color.New(color.FgCyan)
 	for n, es := range expected {
-		cyan.Printf("\n%s\n", es.Spec.Name)
 		if cs, found := current[n]; !found {
-			fmt.Println("Service not found in swarm")
+			color.Green("\n + %s << service will be added", n)
 			// New service to add
 		} else {
+			color.Cyan("\n%s\n", es.Spec.Name)
 			PrintServiceSpecDiff(cs.Spec, es.Spec)
 		}
 	}
+
+	// Checks services to remove
+
+	for n, _ := range current {
+		if _, found := expected[n]; !found {
+			color.Red("\n - %s << service will be removed", n)
+		}
+	}
+
 	/*
 		max := math.Max(len(current), len(expected))
 		for i := 0; i < max; i++ {

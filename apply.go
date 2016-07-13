@@ -62,7 +62,7 @@ func apply(c *cli.Context) error {
 		if currentService, found := current[name]; found {
 			// service exists, need to update
 			cyan.Printf("Updating service %s\n", name)
-			servicesErr := swarm.ServiceUpdate(context.Background(), name, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+			servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
 			if servicesErr != nil {
 				return cli.NewExitError(servicesErr.Error(), 3)
 			}
