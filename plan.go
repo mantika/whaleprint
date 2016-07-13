@@ -19,7 +19,7 @@ import (
 
 var Replica1 uint64 = 1
 
-type Services map[string]swarm.ServiceSpec
+type Services map[string]swarm.Service
 
 func plan(c *cli.Context) error {
 	stackName := c.Args().Get(0)
@@ -66,12 +66,12 @@ func plan(c *cli.Context) error {
 
 	cyan := color.New(color.FgCyan)
 	for n, es := range expected {
-		cyan.Printf("\n%s\n", es.Name)
+		cyan.Printf("\n%s\n", es.Spec.Name)
 		if cs, found := current[n]; !found {
 			fmt.Println("Service not found in swarm")
 			// New service to add
 		} else {
-			PrintServiceSpecDiff(cs, es)
+			PrintServiceSpecDiff(cs.Spec, es.Spec)
 		}
 	}
 	/*
@@ -122,7 +122,11 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stack}
 		spec.Name = fmt.Sprintf("%s_%s", stack, name)
 
-		specs[spec.Name] = spec
+		service := swarm.Service{}
+		service.ID = spec.Name
+		service.Spec = spec
+
+		specs[spec.Name] = service
 	}
 	return specs
 }
@@ -133,7 +137,7 @@ func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Servic
 	for _, service := range services {
 		log.Println(service.Spec.Labels["com.docker.stack.namespace"])
 		if service.Spec.Labels["com.docker.stack.namespace"] == stack {
-			specs[service.Spec.Name] = service.Spec
+			specs[service.Spec.Name] = service
 		}
 	}
 
