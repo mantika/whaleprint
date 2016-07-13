@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"os"
 
@@ -130,6 +129,20 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stack}
 		spec.Name = fmt.Sprintf("%s_%s", stack, name)
 
+		// Populate ports
+		ports := []swarm.PortConfig{}
+		for _, port := range service.Ports {
+			p := swarm.PortConfig{
+				TargetPort: port.Port,
+				Protocol:   swarm.PortConfigProtocol(port.Protocol),
+			}
+
+			ports = append(ports, p)
+		}
+		if len(ports) > 0 {
+			spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports}
+		}
+
 		service := swarm.Service{}
 		service.ID = spec.Name
 		service.Spec = spec
@@ -143,7 +156,6 @@ func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Servic
 	specs := Services{}
 
 	for _, service := range services {
-		log.Println(service.Spec.Labels["com.docker.stack.namespace"])
 		if service.Spec.Labels["com.docker.stack.namespace"] == stack {
 			specs[service.Spec.Name] = service
 		}
