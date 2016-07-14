@@ -3,12 +3,15 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 
 	"github.com/docker/docker/api/client/bundlefile"
+	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/network"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -57,6 +60,12 @@ func apply(c *cli.Context) error {
 	expected := getBundleServicesSpec(bundle, stackName)
 	current := getSwarmServicesSpecForStack(services, stackName)
 
+	err := updateNetworks(context.Background(), swarm, getUniqueNetworkNames(bundle.Services), stackName)
+
+	if err != nil {
+		log.Fatal("Error updating networks when creating services", err)
+	}
+
 	cyan := color.New(color.FgCyan)
 	for name, expectedService := range expected {
 		if currentService, found := current[name]; found {
@@ -87,4 +96,57 @@ func apply(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+func updateNetworks(
+	ctx context.Context,
+	cli *client.Client,
+	networks []string,
+	namespace string,
+) error {
+
+	existingNetworks, err := stack.GetNetworks(ctx, cli, namespace)
+	if err != nil {
+		return err
+	}
+
+	existingNetworkMap := make(map[string]types.NetworkResource)
+	for _, network := range existingNetworks {
+		existingNetworkMap[network.Name] = network
+	}
+
+	createOpts := types.NetworkCreate{
+		Labels: stack.GetStackLabels(namespace, nil),
+		Driver: "overlay",
+		IPAM:   network.IPAM{Driver: "default"},
+	}
+
+	for _, internalName := range networks {
+		name := fmt.Sprintf("%s_%s", namespace, internalName)
+
+		if _, exists := existingNetworkMap[name]; exists {
+			continue
+		}
+
+		fmt.Printf("Creating network %s\n", name)
+		if _, err := cli.NetworkCreate(ctx, name, createOpts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getUniqueNetworkNames(services map[string]bundlefile.Service) []string {
+	networkSet := make(map[string]bool)
+	for _, service := range services {
+		for _, network := range service.Networks {
+			networkSet[network] = true
+		}
+	}
+
+	networks := []string{}
+	for network := range networkSet {
+		networks = append(networks, network)
+	}
+	return networks
 }

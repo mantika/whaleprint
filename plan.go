@@ -65,7 +65,7 @@ func plan(c *cli.Context) error {
 
 	for n, es := range expected {
 		if cs, found := current[n]; !found {
-			color.Green("\n + %s << service will be added", n)
+			color.Green("\n + %s(service will be created)", n)
 			// New service to add
 		} else {
 			color.Cyan("\n%s\n", es.Spec.Name)
@@ -77,22 +77,9 @@ func plan(c *cli.Context) error {
 
 	for n, _ := range current {
 		if _, found := expected[n]; !found {
-			color.Red("\n - %s << service will be removed", n)
+			color.Red("\n - %s(service will be removed)", n)
 		}
 	}
-
-	/*
-		max := math.Max(len(current), len(expected))
-		for i := 0; i < max; i++ {
-			if i >= len(current) {
-				// New service to add
-			} else if i >= len(expected) {
-				// Service to remove
-			} else if current[i] != expected[i] {
-				// Service to remove and service to add
-			} else {
-			}
-		}*/
 
 	return nil
 }
