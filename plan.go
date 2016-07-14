@@ -125,6 +125,7 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 					Replicas: &Replica1,
 				},
 			},
+			Networks: convertNetworks(service.Networks, stack, name),
 		}
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stack}
 		spec.Name = fmt.Sprintf("%s_%s", stack, name)
@@ -140,7 +141,8 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 			ports = append(ports, p)
 		}
 		if len(ports) > 0 {
-			spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports}
+			// Hardcode resolution mode to VIP as it's the default with dab
+			spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports, Mode: swarm.ResolutionMode("vip")}
 		}
 
 		service := swarm.Service{}
@@ -150,6 +152,17 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 		specs[spec.Name] = service
 	}
 	return specs
+}
+
+func convertNetworks(networks []string, namespace string, name string) []swarm.NetworkAttachmentConfig {
+	nets := []swarm.NetworkAttachmentConfig{}
+	for _, network := range networks {
+		nets = append(nets, swarm.NetworkAttachmentConfig{
+			Target:  namespace + "_" + network,
+			Aliases: []string{name},
+		})
+	}
+	return nets
 }
 
 func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Services {
