@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/url"
@@ -28,7 +29,7 @@ func plan(c *cli.Context) error {
 	}
 	dabLocation := c.String("dab")
 
-	detail = c.BoolT("detail")
+	detail := c.BoolT("detail")
 
 	if dabLocation == "" {
 		// Assume it is called as the stack name
@@ -65,23 +66,32 @@ func plan(c *cli.Context) error {
 	expected := getBundleServicesSpec(bundle, stackName)
 	current := getSwarmServicesSpecForStack(services, stackName)
 
+	w := bufio.NewWriter(os.Stdout)
+	sp := NewServicePrinter(w, detail)
+
 	for n, es := range expected {
 		if cs, found := current[n]; !found {
-			color.Green("\n+ %s", n)
-			PrintServiceSpecDiff(cs.Spec, es.Spec)
 			// New service to create
+			color.Green("\n+ %s", n)
+			sp.PrintServiceSpec(es.Spec)
+			w.Flush()
 		} else {
-			color.Yellow("\n~ %s\n", es.Spec.Name)
-			PrintServiceSpecDiff(cs.Spec, es.Spec)
+			different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
+			if different {
+				color.Yellow("\n~ %s\n", es.Spec.Name)
+			} else {
+				color.Cyan("\n%s\n", es.Spec.Name)
+			}
+			w.Flush()
 		}
 	}
 
 	// Checks services to remove
-
 	for n, cs := range current {
-		if es, found := expected[n]; !found {
+		if _, found := expected[n]; !found {
 			color.Red("\n- %s", n)
-			PrintServiceSpecDiff(cs.Spec, es.Spec)
+			sp.PrintServiceSpec(cs.Spec)
+			w.Flush()
 		}
 	}
 

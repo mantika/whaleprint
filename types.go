@@ -2,39 +2,72 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math"
-	"os"
 	"reflect"
-	"text/tabwriter"
+	"strings"
 
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/fatih/color"
 )
 
-var red *color.Color
-var green *color.Color
-var yellow *color.Color
-var normal *color.Color
+var yellow = color.New(color.FgYellow)
 
-var detail bool
-
-var w *tabwriter.Writer
-
-func init() {
-	red = color.New(color.FgRed)
-	green = color.New(color.FgGreen)
-	yellow = color.New(color.FgYellow)
-	normal = color.New(color.FgWhite)
-	w = tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
+type ServicePrinter struct {
+	w           io.Writer
+	detail      bool
+	isDifferent bool
 }
 
-func PrintServiceSpecDiff(current, expected swarm.ServiceSpec) {
-	_printServiceSpecDiff("", current, expected)
-	w.Flush()
+func NewServicePrinter(w io.Writer, detail bool) *ServicePrinter {
+	return &ServicePrinter{w: w, detail: detail}
 }
 
-func _printServiceSpecDiff(namespace string, current, expected interface{}) {
+func (sp *ServicePrinter) PrintServiceSpec(spec swarm.ServiceSpec) {
+	sp.isDifferent = false
+	sp._printServiceSpec("", spec)
+}
+
+func (sp *ServicePrinter) _printServiceSpec(namespace string, current interface{}) {
+	currentType := reflect.TypeOf(current)
+	currentValue := reflect.ValueOf(current)
+	switch currentType.Kind() {
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < currentValue.Len(); i++ {
+			newNamespace := fmt.Sprintf("%s[%d]", namespace, i)
+			sp._printServiceSpec(newNamespace, currentValue.Index(i).Interface())
+		}
+	case reflect.Map:
+		for _, k := range currentValue.MapKeys() {
+			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
+			sp._printServiceSpec(newNamespace, currentValue.MapIndex(k).Interface())
+		}
+	case reflect.Ptr:
+		if !currentValue.IsNil() {
+			sp._printServiceSpec(namespace, reflect.Indirect(currentValue).Interface())
+		}
+	case reflect.Struct:
+		for i := 0; i < currentValue.NumField(); i++ {
+			f := currentValue.Type().Field(i)
+			if f.PkgPath == "" {
+				newNamespace := fmt.Sprintf("%s.%s", namespace, f.Name)
+				sp._printServiceSpec(newNamespace, currentValue.Field(i).Interface())
+			}
+		}
+	default:
+		sc := fmt.Sprint(current)
+		sp.println(nil, namespace, sc)
+	}
+}
+
+func (sp *ServicePrinter) PrintServiceSpecDiff(current, expected swarm.ServiceSpec) bool {
+	sp.isDifferent = false
+	sp._printServiceSpecDiff("", current, expected)
+	return sp.isDifferent
+}
+
+func (sp *ServicePrinter) _printServiceSpecDiff(namespace string, current, expected interface{}) {
 	currentType := reflect.TypeOf(current)
 	expectedType := reflect.TypeOf(expected)
 	currentValue := reflect.ValueOf(current)
@@ -51,11 +84,13 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 		for i := 0; i < c; i++ {
 			newNamespace := fmt.Sprintf("%s[%d]", namespace, i)
 			if i >= currentValue.Len() {
-				_printServiceSpecDiff(newNamespace, reflect.Zero(expectedValue.Index(i).Type()).Interface(), expectedValue.Index(i).Interface())
+				sp._printServiceSpecDiff(newNamespace, reflect.Zero(expectedValue.Index(i).Type()).Interface(), expectedValue.Index(i).Interface())
 			} else if i >= expectedValue.Len() {
-				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), reflect.Zero(currentValue.Index(i).Type()).Interface())
+				sp._printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), reflect.Zero(currentValue.Index(i).Type()).Interface())
+			} else if i >= expectedValue.Len() {
+				sp._printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), reflect.Indirect(reflect.New(currentValue.Index(i).Type())).Interface())
 			} else {
-				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
+				sp._printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
 			}
 		}
 
@@ -69,7 +104,7 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 				expectedKeyValue = reflect.Zero(currentValue.MapIndex(k).Type()).Interface()
 			}
 			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
-			_printServiceSpecDiff(newNamespace, currentValue.MapIndex(k).Interface(), expectedKeyValue)
+			sp._printServiceSpecDiff(newNamespace, currentValue.MapIndex(k).Interface(), expectedKeyValue)
 		}
 
 		for _, k := range expectedValue.MapKeys() {
@@ -81,7 +116,7 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 				currentKeyValue = reflect.Zero(expectedValue.MapIndex(k).Type()).Interface()
 			}
 			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
-			_printServiceSpecDiff(newNamespace, currentKeyValue, expectedValue.MapIndex(k).Interface())
+			sp._printServiceSpecDiff(newNamespace, currentKeyValue, expectedValue.MapIndex(k).Interface())
 		}
 
 	case reflect.Ptr:
@@ -100,15 +135,14 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 			dev = reflect.Indirect(expectedValue).Interface()
 		}
 
-		_printServiceSpecDiff(namespace, dcv, dev)
+		sp._printServiceSpecDiff(namespace, dcv, dev)
 
 	case reflect.Struct:
-
 		for i := 0; i < currentValue.NumField(); i++ {
 			f := currentValue.Type().Field(i)
 			if f.PkgPath == "" {
 				newNamespace := fmt.Sprintf("%s.%s", namespace, f.Name)
-				_printServiceSpecDiff(newNamespace, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
+				sp._printServiceSpecDiff(newNamespace, currentValue.Field(i).Interface(), expectedValue.Field(i).Interface())
 			}
 		}
 	default:
@@ -116,15 +150,39 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 		se := fmt.Sprint(expected)
 
 		if sc == se {
-			if detail {
-				fmt.Fprintf(w, "   %s:\t\"%s\" => \"%s\".\n", namespace, sc, se)
+			if sp.detail {
+				sp.printDiffln(nil, namespace, sc, se)
 			}
-		} else if sc == "" {
-			fmt.Fprintf(w, "   %s:\t\"\" => \"%s\"\n", namespace, se)
-		} else if se == "" {
-			fmt.Fprintf(w, "   %s:\t\"%s\" => \"\"\n", namespace, sc)
 		} else {
-			fmt.Fprintf(w, "   %s:\t\"%s\" => \"%s\"\n", namespace, sc, se)
+			var c *color.Color
+			if sp.detail {
+				c = yellow
+			}
+
+			sp.isDifferent = true
+			sp.printDiffln(c, namespace, sc, se)
 		}
 	}
+}
+
+func (sp *ServicePrinter) println(c *color.Color, namespace, current string) {
+	spaces := 50 - len(namespace)
+	spaceString := strings.Repeat(" ", spaces)
+	if c != nil {
+		namespace = c.SprintFunc()(namespace)
+		current = c.SprintFunc()(current)
+	}
+	fmt.Fprintf(sp.w, "   %s:%s\"%s\"\n", namespace, spaceString, current)
+}
+func (sp *ServicePrinter) printDiffln(c *color.Color, namespace, current, expected string) {
+	action := "=>"
+	spaces := 50 - len(namespace)
+	spaceString := strings.Repeat(" ", spaces)
+	if c != nil {
+		namespace = c.SprintFunc()(namespace)
+		current = c.SprintFunc()(current)
+		expected = c.SprintFunc()(expected)
+		action = c.SprintFunc()(action)
+	}
+	fmt.Fprintf(sp.w, "   %s:%s\"%s\" %s \"%s\"\n", namespace, spaceString, current, action, expected)
 }
