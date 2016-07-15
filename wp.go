@@ -28,6 +28,10 @@ Whaleprint will use the stack name to load the DAB file.
 					Name:  "detail",
 					Usage: "Show all properties instead of changes only",
 				},
+				cli.StringSliceFlag{
+					Name:  "target",
+					Usage: "Process specified services only (default [])",
+				},
 			},
 		},
 		{
@@ -43,6 +47,10 @@ Whaleprint will use the stack name to load the DAB file.
 				cli.StringFlag{
 					Name:  "file, f",
 					Usage: "DAB file to use",
+				},
+				cli.StringSliceFlag{
+					Name:  "target",
+					Usage: "Process specified services only (default [])",
 				},
 			},
 		},

@@ -31,8 +31,6 @@ func plan(c *cli.Context) error {
 	}
 	dabLocation := c.String("dab")
 
-	detail := c.BoolT("detail")
-
 	if dabLocation == "" {
 		// Assume it is called as the stack name
 		dabLocation = fmt.Sprintf("%s.dab", stackName)
@@ -55,6 +53,14 @@ func plan(c *cli.Context) error {
 		return cli.NewExitError(bundleErr.Error(), 3)
 	}
 
+	detail := c.Bool("detail")
+	target := c.StringSlice("target")
+	targetMap := map[string]bool{}
+
+	for _, name := range target {
+		targetMap[name] = true
+	}
+
 	swarm, swarmErr := client.NewEnvClient()
 	if swarmErr != nil {
 		return cli.NewExitError(swarmErr.Error(), 3)
@@ -74,29 +80,36 @@ func plan(c *cli.Context) error {
 	sp := NewServicePrinter(w, detail)
 
 	for n, es := range expected {
-		if cs, found := current[n]; !found {
-			// New service to create
-			color.Green("\n+ %s", n)
-			sp.PrintServiceSpec(es.Spec)
-			w.Flush()
-		} else {
-			different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
-			if different {
-				color.Yellow("\n~ %s\n", es.Spec.Name)
-			} else if detail {
-				color.Cyan("\n%s\n", es.Spec.Name)
+		// Only process found target services
+		if _, found := targetMap[es.Spec.Name]; len(targetMap) == 0 || found {
+			if cs, found := current[n]; !found {
+				// New service to create
+				color.Green("\n+ %s", n)
+				sp.PrintServiceSpec(es.Spec)
+				w.Flush()
+			} else {
+				different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
+				if different {
+					color.Yellow("\n~ %s\n", es.Spec.Name)
+				} else if detail {
+					color.Cyan("\n%s\n", es.Spec.Name)
+				}
+				w.Flush()
 			}
-			w.Flush()
 		}
 	}
 
 	// Checks services to remove
 	for n, cs := range current {
-		if _, found := expected[n]; !found {
-			color.Red("\n- %s", n)
-			sp.PrintServiceSpec(cs.Spec)
-			w.Flush()
+		// Only process found target services
+		if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
+			if _, found := expected[n]; !found {
+				color.Red("\n- %s", n)
+				sp.PrintServiceSpec(cs.Spec)
+				w.Flush()
+			}
 		}
+
 	}
 
 	return nil

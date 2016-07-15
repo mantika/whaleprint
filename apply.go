@@ -52,6 +52,13 @@ func apply(c *cli.Context) error {
 		return cli.NewExitError(swarmErr.Error(), 3)
 	}
 
+	target := c.StringSlice("target")
+	targetMap := map[string]bool{}
+
+	for _, name := range target {
+		targetMap[name] = true
+	}
+
 	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{})
 	if servicesErr != nil {
 		return cli.NewExitError(servicesErr.Error(), 3)
@@ -68,29 +75,33 @@ func apply(c *cli.Context) error {
 
 	cyan := color.New(color.FgCyan)
 	for name, expectedService := range expected {
-		if currentService, found := current[name]; found {
-			// service exists, need to update
-			cyan.Printf("Updating service %s\n", name)
-			servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
-			if servicesErr != nil {
-				return cli.NewExitError(servicesErr.Error(), 3)
-			}
-		} else {
-			// service doesn't exist, need to create a new one
-			cyan.Printf("Creating service %s\n", name)
-			_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
-			if servicesErr != nil {
-				return cli.NewExitError(servicesErr.Error(), 3)
+		if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
+			if currentService, found := current[name]; found {
+				// service exists, need to update
+				cyan.Printf("Updating service %s\n", name)
+				servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+				if servicesErr != nil {
+					return cli.NewExitError(servicesErr.Error(), 3)
+				}
+			} else {
+				// service doesn't exist, need to create a new one
+				cyan.Printf("Creating service %s\n", name)
+				_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
+				if servicesErr != nil {
+					return cli.NewExitError(servicesErr.Error(), 3)
+				}
 			}
 		}
 	}
-	for name, _ := range current {
-		if _, found := expected[name]; !found {
-			// service exists but it's not expected, need to delete it
-			cyan.Printf("Removing service %s\n", name)
-			servicesErr := swarm.ServiceRemove(context.Background(), name)
-			if servicesErr != nil {
-				return cli.NewExitError(servicesErr.Error(), 3)
+	for name, cs := range current {
+		if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
+			if _, found := expected[name]; !found {
+				// service exists but it's not expected, need to delete it
+				cyan.Printf("Removing service %s\n", name)
+				servicesErr := swarm.ServiceRemove(context.Background(), name)
+				if servicesErr != nil {
+					return cli.NewExitError(servicesErr.Error(), 3)
+				}
 			}
 		}
 	}
