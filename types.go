@@ -51,9 +51,9 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 		for i := 0; i < c; i++ {
 			newNamespace := fmt.Sprintf("%s[%d]", namespace, i)
 			if i >= currentValue.Len() {
-				_printServiceSpecDiff(newNamespace, reflect.Indirect(reflect.New(expectedValue.Index(i).Type())).Interface(), expectedValue.Index(i).Interface())
+				_printServiceSpecDiff(newNamespace, reflect.Zero(expectedValue.Index(i).Type()).Interface(), expectedValue.Index(i).Interface())
 			} else if i >= expectedValue.Len() {
-				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), reflect.Indirect(reflect.New(currentValue.Index(i).Type())).Interface())
+				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), reflect.Zero(currentValue.Index(i).Type()).Interface())
 			} else {
 				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
 			}
@@ -66,7 +66,7 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 			if ev.IsValid() {
 				expectedKeyValue = ev.Interface()
 			} else {
-				expectedKeyValue = reflect.Indirect(reflect.New(currentValue.MapIndex(k).Type())).Interface()
+				expectedKeyValue = reflect.Zero(currentValue.MapIndex(k).Type()).Interface()
 			}
 			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
 			_printServiceSpecDiff(newNamespace, currentValue.MapIndex(k).Interface(), expectedKeyValue)
@@ -78,7 +78,7 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 			if cv.IsValid() {
 				continue
 			} else {
-				currentKeyValue = reflect.Indirect(reflect.New(expectedValue.MapIndex(k).Type())).Interface()
+				currentKeyValue = reflect.Zero(expectedValue.MapIndex(k).Type()).Interface()
 			}
 			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
 			_printServiceSpecDiff(newNamespace, currentKeyValue, expectedValue.MapIndex(k).Interface())
