@@ -155,14 +155,26 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 					Dir:     safeDereference(service.WorkingDir),
 					User:    safeDereference(service.User),
 				},
+				Placement: &swarm.Placement{Constraints: service.Constraints},
 			},
 			Mode: swarm.ServiceMode{
 				Replicated: &swarm.ReplicatedService{
-					Replicas: &Replica1,
+					Replicas: service.Replicas,
 				},
 			},
 			Networks: convertNetworks(service.Networks, stackName, name),
 		}
+
+		spec.Mode = swarm.ServiceMode{
+			Replicated: &swarm.ReplicatedService{
+				Replicas: &Replica1,
+			},
+		}
+
+		if service.Replicas != nil {
+			spec.Mode.Replicated.Replicas = service.Replicas
+		}
+
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stackName}
 		spec.Name = fmt.Sprintf("%s_%s", stackName, name)
 
