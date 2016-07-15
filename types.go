@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"reflect"
+	"text/tabwriter"
 
+	"github.com/docker/engine-api/types/swarm"
 	"github.com/fatih/color"
 )
 
@@ -14,20 +17,28 @@ var green *color.Color
 var yellow *color.Color
 var normal *color.Color
 
+var detail bool
+
+var w *tabwriter.Writer
+
 func init() {
 	red = color.New(color.FgRed)
 	green = color.New(color.FgGreen)
 	yellow = color.New(color.FgYellow)
 	normal = color.New(color.FgWhite)
+	w = tabwriter.NewWriter(os.Stdout, 0, 8, 0, '\t', 0)
 }
 
-func PrintServiceSpecDiff(current, expected interface{}) {
+func PrintServiceSpecDiff(current, expected swarm.ServiceSpec) {
 	_printServiceSpecDiff("", current, expected)
+	w.Flush()
 }
 
 func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 	currentType := reflect.TypeOf(current)
 	expectedType := reflect.TypeOf(expected)
+	currentValue := reflect.ValueOf(current)
+	expectedValue := reflect.ValueOf(expected)
 
 	if currentType != expectedType {
 		log.Fatal("Types are different ", currentType, expectedType)
@@ -35,9 +46,6 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 
 	switch currentType.Kind() {
 	case reflect.Array, reflect.Slice:
-		currentValue := reflect.ValueOf(current)
-		expectedValue := reflect.ValueOf(expected)
-
 		c := int(math.Max(float64(currentValue.Len()), float64(expectedValue.Len())))
 
 		for i := 0; i < c; i++ {
@@ -50,10 +58,8 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 				_printServiceSpecDiff(newNamespace, currentValue.Index(i).Interface(), expectedValue.Index(i).Interface())
 			}
 		}
-	case reflect.Map:
-		currentValue := reflect.ValueOf(current)
-		expectedValue := reflect.ValueOf(expected)
 
+	case reflect.Map:
 		for _, k := range currentValue.MapKeys() {
 			ev := expectedValue.MapIndex(k)
 			var expectedKeyValue interface{}
@@ -77,10 +83,8 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 			newNamespace := fmt.Sprintf("%s.%s", namespace, k.Interface())
 			_printServiceSpecDiff(newNamespace, currentKeyValue, expectedValue.MapIndex(k).Interface())
 		}
-	case reflect.Ptr:
-		currentValue := reflect.ValueOf(current)
-		expectedValue := reflect.ValueOf(expected)
 
+	case reflect.Ptr:
 		var dcv interface{}
 		var dev interface{}
 
@@ -97,9 +101,8 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 		}
 
 		_printServiceSpecDiff(namespace, dcv, dev)
+
 	case reflect.Struct:
-		currentValue := reflect.ValueOf(current)
-		expectedValue := reflect.ValueOf(expected)
 
 		for i := 0; i < currentValue.NumField(); i++ {
 			f := currentValue.Type().Field(i)
@@ -113,13 +116,15 @@ func _printServiceSpecDiff(namespace string, current, expected interface{}) {
 		se := fmt.Sprint(expected)
 
 		if sc == se {
-			normal.Printf("  %s:\t\t\t\t\"%s\" => \"%s\"\n", namespace, sc, se)
+			if detail {
+				fmt.Fprintf(w, "   %s:\t\"%s\" => \"%s\".\n", namespace, sc, se)
+			}
 		} else if sc == "" {
-			green.Printf("  %s:\t\t\t\t\"\" => \"%s\"\n", namespace, se)
+			fmt.Fprintf(w, "   %s:\t\"\" => \"%s\"\n", namespace, se)
 		} else if se == "" {
-			red.Printf("  %s:\t\t\t\t\"%s\" => \"\"\n", namespace, sc)
+			fmt.Fprintf(w, "   %s:\t\"%s\" => \"\"\n", namespace, sc)
 		} else {
-			yellow.Printf("  %s:\t\t\t\t\"%s\" => \"%s\"\n", namespace, sc, se)
+			fmt.Fprintf(w, "   %s:\t\"%s\" => \"%s\"\n", namespace, sc, se)
 		}
 	}
 }

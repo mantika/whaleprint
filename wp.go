@@ -24,6 +24,10 @@ Whaleprint will use the stack name to load the DAB file.
 					Name:  "file, f",
 					Usage: "DAB file to use",
 				},
+				cli.BoolFlag{
+					Name:  "detail",
+					Usage: "Show all properties instead of changes only",
+				},
 			},
 		},
 		{

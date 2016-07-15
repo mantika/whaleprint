@@ -28,6 +28,8 @@ func plan(c *cli.Context) error {
 	}
 	dabLocation := c.String("dab")
 
+	detail = c.BoolT("detail")
+
 	if dabLocation == "" {
 		// Assume it is called as the stack name
 		dabLocation = fmt.Sprintf("%s.dab", stackName)
@@ -65,19 +67,21 @@ func plan(c *cli.Context) error {
 
 	for n, es := range expected {
 		if cs, found := current[n]; !found {
-			color.Green("\n + %s(service will be created)", n)
-			// New service to add
+			color.Green("\n+ %s", n)
+			PrintServiceSpecDiff(cs.Spec, es.Spec)
+			// New service to create
 		} else {
-			color.Cyan("\n%s\n", es.Spec.Name)
+			color.Yellow("\n~ %s\n", es.Spec.Name)
 			PrintServiceSpecDiff(cs.Spec, es.Spec)
 		}
 	}
 
 	// Checks services to remove
 
-	for n, _ := range current {
-		if _, found := expected[n]; !found {
-			color.Red("\n - %s(service will be removed)", n)
+	for n, cs := range current {
+		if es, found := expected[n]; !found {
+			color.Red("\n- %s", n)
+			PrintServiceSpecDiff(cs.Spec, es.Spec)
 		}
 	}
 
