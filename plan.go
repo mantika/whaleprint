@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 
 	"golang.org/x/net/context"
 
 	"github.com/docker/docker/api/client/bundlefile"
+	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/swarm"
@@ -64,6 +66,8 @@ func plan(c *cli.Context) error {
 	}
 
 	expected := getBundleServicesSpec(bundle, stackName)
+	translateNetworkToIds(&expected, swarm, stackName)
+
 	current := getSwarmServicesSpecForStack(services, stackName)
 
 	w := bufio.NewWriter(os.Stdout)
@@ -79,7 +83,7 @@ func plan(c *cli.Context) error {
 			different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
 			if different {
 				color.Yellow("\n~ %s\n", es.Spec.Name)
-			} else {
+			} else if detail {
 				color.Cyan("\n%s\n", es.Spec.Name)
 			}
 			w.Flush()
@@ -105,7 +109,25 @@ func safeDereference(p *string) string {
 	return *p
 }
 
-func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services {
+func translateNetworkToIds(services *Services, cli *client.Client, stackName string) {
+	existingNetworks, err := stack.GetNetworks(context.Background(), cli, stackName)
+	if err != nil {
+		log.Fatal("Error retrieving networks")
+	}
+
+	for _, service := range *services {
+		for i, network := range service.Spec.Networks {
+			for _, enet := range existingNetworks {
+				if enet.Name == network.Target {
+					service.Spec.Networks[i].Target = enet.ID
+					network.Target = enet.ID
+				}
+			}
+		}
+	}
+}
+
+func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Services {
 	specs := Services{}
 
 	for name, service := range bundle.Services {
@@ -126,10 +148,10 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stack string) Services
 					Replicas: &Replica1,
 				},
 			},
-			Networks: convertNetworks(service.Networks, stack, name),
+			Networks: convertNetworks(service.Networks, stackName, name),
 		}
-		spec.Labels = map[string]string{"com.docker.stack.namespace": stack}
-		spec.Name = fmt.Sprintf("%s_%s", stack, name)
+		spec.Labels = map[string]string{"com.docker.stack.namespace": stackName}
+		spec.Name = fmt.Sprintf("%s_%s", stackName, name)
 
 		// Populate ports
 		ports := []swarm.PortConfig{}
