@@ -17,10 +17,10 @@ At the same time it will also handle service update diffs describing precisely w
 
 Here's a screenshot of how service diffs look like:
 
+![image](https://cloud.githubusercontent.com/assets/1578458/16891549/eb355f4e-4ad1-11e6-83e5-a977f85bc26d.png)
 
 
-
-Easy, right?
+Can you guess what this `wp plan` output will do?
 
 
 ## What other things does whaleprint do?
