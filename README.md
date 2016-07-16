@@ -51,7 +51,7 @@ Here's an example:
 
 ## FAQ
 
-#### Do I need something extra to make this work?
+#### Do I need some custom docker configuration or version for this?
 
 No, it just works out of the box with your current docker installation
 
