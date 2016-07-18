@@ -11,6 +11,7 @@ import (
 	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/filters"
 	"github.com/docker/engine-api/types/network"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
@@ -59,13 +60,15 @@ func apply(c *cli.Context) error {
 		targetMap[name] = true
 	}
 
-	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{})
+	filter := filters.NewArgs()
+	filter.Add("label", "com.docker.stack.namespace="+stackName)
+	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
 	if servicesErr != nil {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
 
 	expected := getBundleServicesSpec(bundle, stackName)
-	current := getSwarmServicesSpecForStack(services, stackName)
+	current := getSwarmServicesSpecForStack(services)
 
 	err := updateNetworks(context.Background(), swarm, getUniqueNetworkNames(bundle.Services), stackName)
 

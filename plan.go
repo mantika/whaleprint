@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/filters"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
@@ -66,7 +67,9 @@ func plan(c *cli.Context) error {
 		return cli.NewExitError(swarmErr.Error(), 3)
 	}
 
-	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{})
+	filter := filters.NewArgs()
+	filter.Add("label", "com.docker.stack.namespace="+stackName)
+	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
 	if servicesErr != nil {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
@@ -74,7 +77,7 @@ func plan(c *cli.Context) error {
 	expected := getBundleServicesSpec(bundle, stackName)
 	translateNetworkToIds(&expected, swarm, stackName)
 
-	current := getSwarmServicesSpecForStack(services, stackName)
+	current := getSwarmServicesSpecForStack(services)
 
 	w := bufio.NewWriter(os.Stdout)
 	sp := NewServicePrinter(w, detail)
@@ -213,13 +216,11 @@ func convertNetworks(networks []string, namespace string, name string) []swarm.N
 	return nets
 }
 
-func getSwarmServicesSpecForStack(services []swarm.Service, stack string) Services {
+func getSwarmServicesSpecForStack(services []swarm.Service) Services {
 	specs := Services{}
 
 	for _, service := range services {
-		if service.Spec.Labels["com.docker.stack.namespace"] == stack {
-			specs[service.Spec.Name] = service
-		}
+		specs[service.Spec.Name] = service
 	}
 
 	return specs
