@@ -25,7 +25,7 @@ func main() {
 			ArgsUsage: `[STACK]
 
 Prints an execultion plan to review before applying changes.
-Whaleprint will use the stack name to load the DAB file.
+Whaleprint will look for .dab files or use the stack name to load the DAB file.
 			`,
 			Action: plan,
 			Flags: []cli.Flag{
@@ -48,14 +48,38 @@ Whaleprint will use the stack name to load the DAB file.
 			Usage: "Apply DAB whaleprint",
 			ArgsUsage: `[STACK]
 
-Prints an execultion plan to review before applying changes.
-Whaleprint will use the stack name to load the DAB file.
+Applies the execution plan returned by the "whaleprint plan" command
+Whaleprint will look for .dab files or use the stack name to load the DAB file.
 			`,
 			Action: apply,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
 					Usage: "DAB file to use",
+				},
+				cli.StringSliceFlag{
+					Name:  "target",
+					Usage: "Process specified services only (default [])",
+				},
+			},
+		},
+		{
+			Name:  "destroy",
+			Usage: "Destroy a DAB stack",
+			ArgsUsage: `[STACK]
+
+Destroys the stack present in the DAB file  
+Whaleprint will look for .dab files use the stack name to load the DAB file.
+			`,
+			Action: destroy,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "file, f",
+					Usage: "DAB file to use",
+				},
+				cli.BoolFlag{
+					Name:  "force",
+					Usage: "Ignore destroy DAB file to useconfirmation",
 				},
 				cli.StringSliceFlag{
 					Name:  "target",
