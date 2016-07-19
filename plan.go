@@ -3,9 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
-	"net/url"
 	"os"
 
 	"golang.org/x/net/context"
@@ -25,33 +23,10 @@ var Replica1 uint64 = 1
 type Services map[string]swarm.Service
 
 func plan(c *cli.Context) error {
-	stackName := c.Args().Get(0)
 
-	if stackName == "" {
-		return cli.NewExitError("Need to specify a stack name", 1)
-	}
-	dabLocation := c.String("dab")
-
-	if dabLocation == "" {
-		// Assume it is called as the stack name
-		dabLocation = fmt.Sprintf("%s.dab", stackName)
-	}
-
-	var dabReader io.Reader
-	if u, e := url.Parse(dabLocation); e == nil && u.IsAbs() {
-		// DAB file seems to be remote, try to download it first
-		return cli.NewExitError("Not implemented", 2)
-	} else {
-		if dabFile, err := os.Open(dabLocation); err != nil {
-			return cli.NewExitError(err.Error(), 3)
-		} else {
-			dabReader = dabFile
-		}
-	}
-
-	bundle, bundleErr := bundlefile.LoadFile(dabReader)
-	if bundleErr != nil {
-		return cli.NewExitError(bundleErr.Error(), 3)
+	bundle, stackName, err := getBundleFromContext(c)
+	if err != nil {
+		return err
 	}
 
 	detail := c.Bool("detail")
