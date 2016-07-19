@@ -22,7 +22,7 @@ func main() {
 		{
 			Name:  "plan",
 			Usage: "Plan DAB whaleprint",
-			ArgsUsage: `STACK
+			ArgsUsage: `[STACK]
 
 Prints an execultion plan to review before applying changes.
 Whaleprint will use the stack name to load the DAB file.
@@ -46,7 +46,7 @@ Whaleprint will use the stack name to load the DAB file.
 		{
 			Name:  "apply",
 			Usage: "Apply DAB whaleprint",
-			ArgsUsage: `STACK
+			ArgsUsage: `[STACK]
 
 Prints an execultion plan to review before applying changes.
 Whaleprint will use the stack name to load the DAB file.
