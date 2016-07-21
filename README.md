@@ -11,7 +11,7 @@ After playing around with docker experimental [DAB's](https://github.com/docker/
 that even though the concept looks promising, the tooling around it was somehow poor and pretty much useless. The only thing that you can do with this as today is 
 generate a DAB from a `docker-compose` yml file and then run `docker stack deploy` or `docker deploy` in order to deploy it to your swarm mode cluster and that's pretty much it. 
 
-We immediately started thinking of different ways to enhance the dev & ops experience with this new feature and we came up with some nice ideas that made this possible.
+We immediately started thinking of different ways to enhance the dev & ops experience with this new feature and we came up with some nice ideas that makes this possible.
 The main concept behind this project is that we believe service stack deployments (specially in production) should be __transparent__, __reliable__ and above all [__declarative__ and not imperative](https://en.wikipedia.org/wiki/Declarative_programming#Definition).  
 
 Whaleprint makes possible to use your current DAB files as swarm mode blueprints and will show you with __extreme detail__  __exactly__ which and how your services will be deployed/removed. 
