@@ -72,5 +72,4 @@ It's designed to show results instantly even with a large amount of services.
 While working on whaleprint we learnt a lot from docker internals as well as the new `swarm mode` and `swarmkit` core principles. We also found some issues
 ([#1171](https://github.com/docker/swarmkit/issues/1171)) and sent some PR's fixing small bugs ([#320](https://github.com/docker/engine-api/pull/320)).
 
-Some of the terms and ideas Whaleprint uses were taken from some other products/companies like HashiCorp terraform who we admire for the excellence and 
-ability to build amazing stuff.
+Some of the concepts and ideas Whaleprint uses were inspired from some other products/companies like HashiCorp terraform who we admire for their excellence and ability to build amazing stuff.
