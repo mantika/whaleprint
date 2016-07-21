@@ -1,4 +1,7 @@
 # Whaleprint
+
+![whaleprint] (https://github.com/mantika/whaleprint/blob/master/blue2.jpg)
+
 Whaleprint allows to manage DAB (distributed application bundle) as service blueprints for docker swarm mode
 
 
