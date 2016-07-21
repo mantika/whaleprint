@@ -43,7 +43,7 @@ Check this YouTube video to see a demo:
 
 ## Installing whaleprint
 
-Just download the binary for your platform from the [Releases](https://github.com/mantika/whaleprint/releases) section and put it anywher in your PATH and enjoy!
+Just download the binary for your platform from the [Releases](https://github.com/mantika/whaleprint/releases) section, put it anywher in your PATH and enjoy!
 
 ## Extending DAB
 
