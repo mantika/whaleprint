@@ -31,7 +31,7 @@ Can you guess what this `wp plan` output will do?
 - Preview and apply your DAB changesets (duh!)
 - Extend the current DAB format to support MOAR features.
 - Fetch  DAB's from an URL
-- Remove and deploy entirely new services
+- Remove and deploy service stacks entirely
 - Allow to apply specific service update through the `--target` option
 - Alternatively print complete plan detail instead of changesets only
 
