@@ -92,7 +92,7 @@ Whaleprint will look for .dab files use the stack name to load the DAB file.
 	app.Run(os.Args)
 }
 
-func getStacFromCWD() string {
+func getStackFromCWD() string {
 	files, err := ioutil.ReadDir(".")
 	if err != nil {
 		log.Fatal("Error fetching files from current dir", err)
@@ -123,7 +123,7 @@ func getBundleFromContext(c *cli.Context) (*bundlefile.Bundlefile, string, error
 	dabFile := c.String("file")
 
 	if stackName == "" && dabFile == "" {
-		stackName = getStacFromCWD()
+		stackName = getStackFromCWD()
 	}
 
 	if dabFile != "" {
