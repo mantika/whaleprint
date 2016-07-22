@@ -44,6 +44,7 @@ func apply(c *cli.Context) error {
 		}
 
 		expected := getBundleServicesSpec(stack.Bundle, stack.Name)
+		translateNetworkToIds(&expected, swarm, stack.Name)
 		current := getSwarmServicesSpecForStack(services)
 
 		err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(stack.Bundle.Services), stack.Name)
@@ -57,7 +58,6 @@ func apply(c *cli.Context) error {
 		for name, expectedService := range expected {
 			if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
 				if currentService, found := current[name]; found {
-					// service exists, need to update
 					if sp.PrintServiceSpecDiff(currentService.Spec, expectedService.Spec) {
 						cyan.Printf("Updating service %s\n", name)
 						servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
