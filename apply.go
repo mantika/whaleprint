@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 
 	"github.com/docker/docker/api/client/bundlefile"
@@ -52,14 +53,17 @@ func apply(c *cli.Context) error {
 		}
 
 		cyan := color.New(color.FgCyan)
+		sp := NewServicePrinter(ioutil.Discard, false)
 		for name, expectedService := range expected {
 			if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
 				if currentService, found := current[name]; found {
 					// service exists, need to update
-					cyan.Printf("Updating service %s\n", name)
-					servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
-					if servicesErr != nil {
-						return cli.NewExitError(servicesErr.Error(), 3)
+					if sp.PrintServiceSpecDiff(currentService.Spec, expectedService.Spec) {
+						cyan.Printf("Updating service %s\n", name)
+						servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+						if servicesErr != nil {
+							return cli.NewExitError(servicesErr.Error(), 3)
+						}
 					}
 				} else {
 					// service doesn't exist, need to create a new one
