@@ -13,14 +13,16 @@ import (
 )
 
 func destroy(c *cli.Context) error {
-	bundle, stackName, err := getBundleFromContext(c)
+	stacks, err := getStacks(c)
 	if err != nil {
 		return err
 	}
 
 	var services []string
-	for name, _ := range bundle.Services {
-		services = append(services, fmt.Sprintf("%s_%s", stackName, name))
+	for _, stack := range stacks {
+		for name, _ := range stack.Bundle.Services {
+			services = append(services, fmt.Sprintf("%s_%s", stack.Name, name))
+		}
 	}
 
 	force := c.Bool("force")
@@ -31,7 +33,7 @@ func destroy(c *cli.Context) error {
 	}
 
 	if !force {
-		fmt.Printf("Are you sure you want to remove the following services? (%s) yes/no: ", strings.Join(services, ","))
+		fmt.Printf("Are you sure you want to remove the following services? (%s) yes/no: ", strings.Join(services, ", "))
 		var input string
 		fmt.Scanln(&input)
 		switch {

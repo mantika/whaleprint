@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/client/bundlefile"
-	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )
 
@@ -92,63 +91,80 @@ Whaleprint will look for .dab files use the stack name to load the DAB file.
 	app.Run(os.Args)
 }
 
-func getStackFromCWD() string {
+func getStacksFromCWD() []string {
 	files, err := ioutil.ReadDir(".")
 	if err != nil {
 		log.Fatal("Error fetching files from current dir", err)
 	}
 
-	var dab string
+	dabs := []string{}
 
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".dab") {
-			if dab != "" {
-				color.Yellow("%s", "[WARN] multiple DAB files found in CWD, use stackname or -f flag \n")
-				os.Exit(1)
-			}
-			dab = strings.TrimSuffix(file.Name(), ".dab")
+			dabs = append(dabs, strings.TrimSuffix(file.Name(), ".dab"))
 		}
 	}
 
-	if dab == "" {
-		log.Fatal("No DAB found in current directory")
+	if len(dabs) == 0 {
+		log.Fatal("No DABs found in current directory")
 	}
 
-	return dab
+	return dabs
 }
 
-func getBundleFromContext(c *cli.Context) (*bundlefile.Bundlefile, string, error) {
+func getStacks(c *cli.Context) ([]Stack, error) {
+	type stackDefinition struct {
+		name string
+		file string
+	}
 
-	stackName := c.Args().Get(0)
+	defs := []stackDefinition{}
+
+	stackNames := c.Args()
 	dabFile := c.String("file")
 
-	if stackName == "" && dabFile == "" {
-		stackName = getStackFromCWD()
-	}
-
 	if dabFile != "" {
-		// Assume it is called as the stack name
-		stackName = strings.TrimSuffix(filepath.Base(dabFile), filepath.Ext(dabFile))
-		fmt.Println(stackName, "lalala")
-	} else {
-		dabFile = fmt.Sprintf("%s.dab", stackName)
-	}
-
-	var dabReader io.Reader
-	if u, e := url.Parse(dabFile); e == nil && u.IsAbs() {
-		// DAB file seems to be remote, try to download it first
-		return nil, "", cli.NewExitError("Not implemented", 2)
-	} else {
-		if file, err := os.Open(dabFile); err != nil {
-			return nil, "", cli.NewExitError(err.Error(), 3)
+		if len(stackNames) > 1 {
+			return nil, cli.NewExitError("You can only specify one stack name when using -f", 1)
+		} else if len(stackNames) == 1 {
+			defs = append(defs, stackDefinition{name: stackNames[0], file: dabFile})
 		} else {
-			dabReader = file
+			stackName := strings.TrimSuffix(filepath.Base(dabFile), filepath.Ext(dabFile))
+			defs = append(defs, stackDefinition{name: stackName, file: dabFile})
+		}
+	} else if len(stackNames) == 0 {
+		stackNames = getStacksFromCWD()
+
+		for _, name := range stackNames {
+			dabFile := fmt.Sprintf("%s.dab", name)
+			defs = append(defs, stackDefinition{name: name, file: dabFile})
+		}
+	} else if len(stackNames) > 0 {
+		for _, name := range stackNames {
+			dabFile := fmt.Sprintf("%s.dab", name)
+			defs = append(defs, stackDefinition{name: name, file: dabFile})
 		}
 	}
 
-	bundle, bundleErr := bundlefile.LoadFile(dabReader)
-	if bundleErr != nil {
-		return nil, "", cli.NewExitError(bundleErr.Error(), 3)
+	stacks := make([]Stack, len(defs))
+	for i, def := range defs {
+		var dabReader io.Reader
+		if u, e := url.Parse(def.file); e == nil && u.IsAbs() {
+			// DAB file seems to be remote, try to download it first
+			return nil, cli.NewExitError("Not implemented", 2)
+		} else {
+			if file, err := os.Open(def.file); err != nil {
+				return nil, cli.NewExitError(err.Error(), 3)
+			} else {
+				dabReader = file
+			}
+		}
+
+		bundle, bundleErr := bundlefile.LoadFile(dabReader)
+		if bundleErr != nil {
+			return nil, cli.NewExitError(bundleErr.Error(), 3)
+		}
+		stacks[i] = Stack{Name: def.name, Bundle: bundle}
 	}
-	return bundle, stackName, nil
+	return stacks, nil
 }

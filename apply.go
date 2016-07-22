@@ -17,7 +17,7 @@ import (
 
 func apply(c *cli.Context) error {
 
-	bundle, stackName, err := getBundleFromContext(c)
+	stacks, err := getStacks(c)
 	if err != nil {
 		return err
 	}
@@ -34,50 +34,52 @@ func apply(c *cli.Context) error {
 		targetMap[name] = true
 	}
 
-	filter := filters.NewArgs()
-	filter.Add("label", "com.docker.stack.namespace="+stackName)
-	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
-	if servicesErr != nil {
-		return cli.NewExitError(servicesErr.Error(), 3)
-	}
+	for _, stack := range stacks {
+		filter := filters.NewArgs()
+		filter.Add("label", "com.docker.stack.namespace="+stack.Name)
+		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
+		if servicesErr != nil {
+			return cli.NewExitError(servicesErr.Error(), 3)
+		}
 
-	expected := getBundleServicesSpec(bundle, stackName)
-	current := getSwarmServicesSpecForStack(services)
+		expected := getBundleServicesSpec(stack.Bundle, stack.Name)
+		current := getSwarmServicesSpecForStack(services)
 
-	err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(bundle.Services), stackName)
+		err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(stack.Bundle.Services), stack.Name)
 
-	if err != nil {
-		log.Fatal("Error updating networks when creating services", err)
-	}
+		if err != nil {
+			log.Fatal("Error updating networks when creating services", err)
+		}
 
-	cyan := color.New(color.FgCyan)
-	for name, expectedService := range expected {
-		if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
-			if currentService, found := current[name]; found {
-				// service exists, need to update
-				cyan.Printf("Updating service %s\n", name)
-				servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
-				if servicesErr != nil {
-					return cli.NewExitError(servicesErr.Error(), 3)
-				}
-			} else {
-				// service doesn't exist, need to create a new one
-				cyan.Printf("Creating service %s\n", name)
-				_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
-				if servicesErr != nil {
-					return cli.NewExitError(servicesErr.Error(), 3)
+		cyan := color.New(color.FgCyan)
+		for name, expectedService := range expected {
+			if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
+				if currentService, found := current[name]; found {
+					// service exists, need to update
+					cyan.Printf("Updating service %s\n", name)
+					servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+					if servicesErr != nil {
+						return cli.NewExitError(servicesErr.Error(), 3)
+					}
+				} else {
+					// service doesn't exist, need to create a new one
+					cyan.Printf("Creating service %s\n", name)
+					_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
+					if servicesErr != nil {
+						return cli.NewExitError(servicesErr.Error(), 3)
+					}
 				}
 			}
 		}
-	}
-	for name, cs := range current {
-		if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
-			if _, found := expected[name]; !found {
-				// service exists but it's not expected, need to delete it
-				cyan.Printf("Removing service %s\n", name)
-				servicesErr := swarm.ServiceRemove(context.Background(), name)
-				if servicesErr != nil {
-					return cli.NewExitError(servicesErr.Error(), 3)
+		for name, cs := range current {
+			if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
+				if _, found := expected[name]; !found {
+					// service exists but it's not expected, need to delete it
+					cyan.Printf("Removing service %s\n", name)
+					servicesErr := swarm.ServiceRemove(context.Background(), name)
+					if servicesErr != nil {
+						return cli.NewExitError(servicesErr.Error(), 3)
+					}
 				}
 			}
 		}

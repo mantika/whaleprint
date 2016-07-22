@@ -23,8 +23,7 @@ var Replica1 uint64 = 1
 type Services map[string]swarm.Service
 
 func plan(c *cli.Context) error {
-
-	bundle, stackName, err := getBundleFromContext(c)
+	stacks, err := getStacks(c)
 	if err != nil {
 		return err
 	}
@@ -42,52 +41,57 @@ func plan(c *cli.Context) error {
 		return cli.NewExitError(swarmErr.Error(), 3)
 	}
 
-	filter := filters.NewArgs()
-	filter.Add("label", "com.docker.stack.namespace="+stackName)
-	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
-	if servicesErr != nil {
-		return cli.NewExitError(servicesErr.Error(), 3)
-	}
+	for _, stack := range stacks {
+		filter := filters.NewArgs()
+		filter.Add("label", "com.docker.stack.namespace="+stack.Name)
+		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
+		if servicesErr != nil {
+			return cli.NewExitError(servicesErr.Error(), 3)
+		}
 
-	expected := getBundleServicesSpec(bundle, stackName)
-	translateNetworkToIds(&expected, swarm, stackName)
+		expected := getBundleServicesSpec(stack.Bundle, stack.Name)
+		translateNetworkToIds(&expected, swarm, stack.Name)
 
-	current := getSwarmServicesSpecForStack(services)
+		current := getSwarmServicesSpecForStack(services)
 
-	w := bufio.NewWriter(os.Stdout)
-	sp := NewServicePrinter(w, detail)
+		w := bufio.NewWriter(os.Stdout)
+		sp := NewServicePrinter(w, detail)
 
-	for n, es := range expected {
-		// Only process found target services
-		if _, found := targetMap[es.Spec.Name]; len(targetMap) == 0 || found {
-			if cs, found := current[n]; !found {
-				// New service to create
-				color.Green("\n+ %s", n)
-				sp.PrintServiceSpec(es.Spec)
-				w.Flush()
-			} else {
-				different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
-				if different {
-					color.Yellow("\n~ %s\n", es.Spec.Name)
-				} else if detail {
-					color.Cyan("\n%s\n", es.Spec.Name)
+		for n, es := range expected {
+			// Only process found target services
+			if _, found := targetMap[es.Spec.Name]; len(targetMap) == 0 || found {
+				if cs, found := current[n]; !found {
+					// New service to create
+					color.Green("+ %s", n)
+					sp.PrintServiceSpec(es.Spec)
+					w.Flush()
+					fmt.Println()
+				} else {
+					different := sp.PrintServiceSpecDiff(cs.Spec, es.Spec)
+					if different {
+						color.Yellow("~ %s\n", es.Spec.Name)
+					} else if detail {
+						color.Cyan("%s\n", es.Spec.Name)
+					}
+					w.Flush()
+					fmt.Println()
 				}
-				w.Flush()
-			}
-		}
-	}
-
-	// Checks services to remove
-	for n, cs := range current {
-		// Only process found target services
-		if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
-			if _, found := expected[n]; !found {
-				color.Red("\n- %s", n)
-				sp.PrintServiceSpec(cs.Spec)
-				w.Flush()
 			}
 		}
 
+		// Checks services to remove
+		for n, cs := range current {
+			// Only process found target services
+			if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
+				if _, found := expected[n]; !found {
+					color.Red("- %s", n)
+					sp.PrintServiceSpec(cs.Spec)
+					w.Flush()
+					fmt.Println()
+				}
+			}
+
+		}
 	}
 
 	return nil

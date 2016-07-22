@@ -8,11 +8,17 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/engine-api/types/swarm"
 	"github.com/fatih/color"
 )
 
 var yellow = color.New(color.FgYellow)
+
+type Stack struct {
+	Name   string
+	Bundle *bundlefile.Bundlefile
+}
 
 type ServicePrinter struct {
 	w           io.Writer
