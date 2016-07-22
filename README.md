@@ -34,6 +34,7 @@ Can you guess what this `wp plan` output will do?
 - Fetch  DAB's from an URL
 - Remove and deploy service stacks entirely
 - Allow to apply specific service update through the `--target` option
+- Outputs relevant computed stack information like Published ports
 - Alternatively print complete plan detail instead of changesets only
 
 
