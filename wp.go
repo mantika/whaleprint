@@ -86,6 +86,21 @@ Whaleprint will look for .dab files use the stack name to load the DAB file.
 				},
 			},
 		},
+		{
+			Name:  "output",
+			Usage: "Show import output information stacks",
+			ArgsUsage: `[STACK] [STACK...]
+
+Show important information for the specified stacks.
+			`,
+			Action: output,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "file, f",
+					Usage: "DAB file to use",
+				},
+			},
+		},
 	}
 
 	app.Run(os.Args)
