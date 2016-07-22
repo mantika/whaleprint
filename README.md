@@ -29,7 +29,8 @@ Can you guess what this `wp plan` output will do?
 
 
 - Preview and apply your DAB changesets (duh!)
-- Extend the current DAB format to support MOAR features.
+- Extend the current DAB format to support MOAR features. ([#7](https://github.com/mantika/whaleprint/issues/7))
+- Manage multiple stacks simultaneously
 - Fetch  DAB's from an URL
 - Remove and deploy service stacks entirely
 - Allow to apply specific service update through the `--target` option
@@ -61,6 +62,11 @@ No, it just works out of the box with your current docker installation
 #### This is cool, in which docker version/platform does it work?
 
 Whaleprint works in __any__ OS that's currently running docker 1.12 RC 
+
+#### I'm getting connection errors when trying to use whaleprint. 
+
+In OSX this might happen because of an [issue](https://github.com/docker/engine-api/pull/320) in engine-api.
+In the meantime just set your `DOCKER_HOST` env variable to your unix socket or TCP connection and you should be ok
 
 #### What about performance?.
 
