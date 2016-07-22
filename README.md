@@ -53,6 +53,27 @@ Replicas and Constraints (more features to come).
 
 Here's an example:
 
+```javascript
+{
+  "services": {
+    "vote": {
+      "Image": "docker/example-voting-app-vote@sha256:20faa449b42b5f0797b1b1a3028a2dd7ac0ece00b0d100b19e6dff4d1a0af2e3",
+      "EndpointMode": "dnsrr", // Here we set the endpoint mode
+      "Constraints": [
+        "engine.labels.disk == ssd" // We can also add custom constraints
+      ],
+      "Replicas": 5, // And set the number of replicas
+      "Networks": [
+        "fruta"
+      ]
+    }
+  },
+  "version": "0.1"
+}
+```
+
+As you can see **Replicas**, **Constraints** and **EndpoitMode** are extended features that are not currently supported in the current [DAB specification](https://github.com/docker/docker/blob/master/experimental/docker-stacks-and-bundles.md).
+
 ## FAQ
 
 #### Do I need some custom docker configuration or version for this?
