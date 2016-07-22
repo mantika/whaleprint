@@ -170,17 +170,15 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 
 			ports = append(ports, p)
 		}
-		if len(ports) > 0 {
-			// Hardcode resolution mode to VIP as it's the default with dab
-			mode := "vip"
-			if service.EndpointMode != nil {
-				if *service.EndpointMode != "dnsrr" && *service.EndpointMode != "vip" {
-					log.Fatalf("Invalid mode \"%s\" for service %s, only \"dnsrr\" or \"vip\" is allowed", *service.EndpointMode, spec.Name)
-				}
-				mode = *service.EndpointMode
+		// Hardcode resolution mode to VIP as it's the default with dab
+		mode := "vip"
+		if service.EndpointMode != nil {
+			if *service.EndpointMode != "dnsrr" && *service.EndpointMode != "vip" {
+				log.Fatalf("Invalid mode \"%s\" for service %s, only \"dnsrr\" or \"vip\" is allowed", *service.EndpointMode, spec.Name)
 			}
-			spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports, Mode: swarm.ResolutionMode(mode)}
+			mode = *service.EndpointMode
 		}
+		spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports, Mode: swarm.ResolutionMode(mode)}
 
 		service := swarm.Service{}
 		service.ID = spec.Name
