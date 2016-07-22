@@ -21,7 +21,7 @@ func main() {
 		{
 			Name:  "plan",
 			Usage: "Plan DAB whaleprint",
-			ArgsUsage: `[STACK]
+			ArgsUsage: `[STACK] [STACK...]
 
 Prints an execultion plan to review before applying changes.
 Whaleprint will look for .dab files or use the stack name to load the DAB file.
@@ -45,7 +45,7 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 		{
 			Name:  "apply",
 			Usage: "Apply DAB whaleprint",
-			ArgsUsage: `[STACK]
+			ArgsUsage: `[STACK] [STACK...]
 
 Applies the execution plan returned by the "whaleprint plan" command
 Whaleprint will look for .dab files or use the stack name to load the DAB file.
@@ -65,7 +65,7 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 		{
 			Name:  "destroy",
 			Usage: "Destroy a DAB stack",
-			ArgsUsage: `[STACK]
+			ArgsUsage: `[STACK] [STACK...]
 
 Destroys the stack present in the DAB file  
 Whaleprint will look for .dab files use the stack name to load the DAB file.

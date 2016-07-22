@@ -164,8 +164,9 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 		ports := []swarm.PortConfig{}
 		for _, port := range service.Ports {
 			p := swarm.PortConfig{
-				TargetPort: port.Port,
-				Protocol:   swarm.PortConfigProtocol(port.Protocol),
+				TargetPort:    port.Port,
+				Protocol:      swarm.PortConfigProtocol(port.Protocol),
+				PublishedPort: port.PublishedPort,
 			}
 
 			ports = append(ports, p)

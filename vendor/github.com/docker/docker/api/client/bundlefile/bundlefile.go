@@ -30,8 +30,9 @@ type Service struct {
 
 // Port is a port as defined in a bundlefile
 type Port struct {
-	Protocol string
-	Port     uint32
+	Protocol      string
+	Port          uint32
+	PublishedPort uint32
 }
 
 // LoadFile loads a bundlefile from a path to the file
