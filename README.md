@@ -22,9 +22,6 @@ Check it out!:
 [![asciicast](https://asciinema.org/a/9a7oq68a9eoilwqwq459xdr3t.png)](https://asciinema.org/a/9a7oq68a9eoilwqwq459xdr3t)
 
 
-Can you guess what this `wp plan` output will do?
-
-v
 ## What other things does whaleprint do?
 
 
