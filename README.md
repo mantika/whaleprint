@@ -17,9 +17,9 @@ The main concept behind this project is that we believe service stack deployment
 Whaleprint makes possible to use your current DAB files as swarm mode blueprints and will show you with __extreme detail__  __exactly__ which and how your services will be deployed/removed. 
 At the same time it will also handle service update diffs describing precisely what things will change and what will be their new updated value.
 
-Here's a screenshot of how service diffs look like:
+Check it out!:
 
-![image](https://cloud.githubusercontent.com/assets/1578458/16891549/eb355f4e-4ad1-11e6-83e5-a977f85bc26d.png)
+[![asciicast](https://asciinema.org/a/9a7oq68a9eoilwqwq459xdr3t.png)](https://asciinema.org/a/9a7oq68a9eoilwqwq459xdr3t)
 
 
 Can you guess what this `wp plan` output will do?
