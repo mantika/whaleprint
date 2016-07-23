@@ -24,7 +24,7 @@ Check it out!:
 
 Can you guess what this `wp plan` output will do?
 
-
+v
 ## What other things does whaleprint do?
 
 
@@ -40,7 +40,7 @@ Can you guess what this `wp plan` output will do?
 
 ## How do I use it?
 
-Check this YouTube video to see a demo: 
+Check this YouTube video to see a demo: https://www.youtube.com/watch?v=nwtJflxY560
 
 
 ## Installing whaleprint
