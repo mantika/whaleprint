@@ -37,7 +37,7 @@ func output(c *cli.Context) error {
 			fmt.Println("  - Published Ports")
 
 			for _, port := range s.Endpoint.Ports {
-				fmt.Printf("     %d => %d\n", port.TargetPort, port.PublishedPort)
+				fmt.Printf("     %d => %d\n", port.PublishedPort, port.TargetPort)
 			}
 
 			fmt.Println()
