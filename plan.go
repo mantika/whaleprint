@@ -73,8 +73,12 @@ func plan(c *cli.Context) error {
 					} else if detail {
 						color.Cyan("%s\n", es.Spec.Name)
 					}
-					w.Flush()
-					fmt.Println()
+
+					// flush if results
+					if different || detail {
+						w.Flush()
+						fmt.Println()
+					}
 				}
 			}
 		}
