@@ -84,8 +84,8 @@ Whaleprint works in __any__ OS that's currently running docker 1.12 RC
 
 #### I'm getting connection errors when trying to use whaleprint. 
 
-In OSX this might happen because of an [issue](https://github.com/docker/engine-api/pull/320) in engine-api.
-In the meantime just set your `DOCKER_HOST` env variable to your unix socket or TCP connection and you should be ok
+~~In OSX this might happen because of an [issue](https://github.com/docker/engine-api/pull/320) in engine-api.
+In the meantime just set your `DOCKER_HOST` env variable to your unix socket or TCP connection and you should be ok~~. This issue has been merged, it shouldn't be necessary to do this workaround anymore. 
 
 #### What about performance?.
 
