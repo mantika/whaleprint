@@ -47,13 +47,26 @@ func apply(c *cli.Context) error {
 		translateNetworkToIds(&expected, swarm, stack.Name)
 		current := getSwarmServicesSpecForStack(services)
 
+		cyan := color.New(color.FgCyan)
+		for name, cs := range current {
+			if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
+				if _, found := expected[name]; !found {
+					// service exists but it's not expected, need to delete it
+					cyan.Printf("Removing service %s\n", name)
+					servicesErr := swarm.ServiceRemove(context.Background(), name)
+					if servicesErr != nil {
+						return cli.NewExitError(servicesErr.Error(), 3)
+					}
+				}
+			}
+		}
+
 		err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(stack.Bundle.Services), stack.Name)
 
 		if err != nil {
 			log.Fatal("Error updating networks when creating services", err)
 		}
 
-		cyan := color.New(color.FgCyan)
 		sp := NewServicePrinter(ioutil.Discard, false)
 		for name, expectedService := range expected {
 			if _, found := targetMap[expectedService.Spec.Name]; len(targetMap) == 0 || found {
@@ -69,18 +82,6 @@ func apply(c *cli.Context) error {
 					// service doesn't exist, need to create a new one
 					cyan.Printf("Creating service %s\n", name)
 					_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
-					if servicesErr != nil {
-						return cli.NewExitError(servicesErr.Error(), 3)
-					}
-				}
-			}
-		}
-		for name, cs := range current {
-			if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
-				if _, found := expected[name]; !found {
-					// service exists but it's not expected, need to delete it
-					cyan.Printf("Removing service %s\n", name)
-					servicesErr := swarm.ServiceRemove(context.Background(), name)
 					if servicesErr != nil {
 						return cli.NewExitError(servicesErr.Error(), 3)
 					}
