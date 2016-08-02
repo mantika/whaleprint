@@ -74,6 +74,11 @@ func plan(c *cli.Context) error {
 						color.Cyan("%s\n", es.Spec.Name)
 					}
 
+					return swarm.ServiceMode{
+						Replicated: &swarm.ReplicatedService{
+							Replicas: &Replica1,
+						},
+					}
 					// flush if results
 					if different || detail {
 						w.Flush()
@@ -143,19 +148,10 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 				},
 				Placement: &swarm.Placement{Constraints: service.Constraints},
 			},
-			Mode: swarm.ServiceMode{
-				Replicated: &swarm.ReplicatedService{
-					Replicas: service.Replicas,
-				},
-			},
 			Networks: convertNetworks(service.Networks, stackName, name),
 		}
 
-		spec.Mode = swarm.ServiceMode{
-			Replicated: &swarm.ReplicatedService{
-				Replicas: &Replica1,
-			},
-		}
+		spec.Mode = getServiceMode(service.Mode)
 
 		if service.Replicas != nil {
 			spec.Mode.Replicated.Replicas = service.Replicas
@@ -192,6 +188,20 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 		specs[spec.Name] = service
 	}
 	return specs
+}
+
+func getServiceMode(mode *string) swarm.ServiceMode {
+	if mode != nil && *mode == "global" {
+		return swarm.ServiceMode{
+			Global: &swarm.GlobalService{},
+		}
+	} else {
+		return swarm.ServiceMode{
+			Replicated: &swarm.ReplicatedService{
+				Replicas: &Replica1,
+			},
+		}
+	}
 }
 
 func convertNetworks(networks []string, namespace string, name string) []swarm.NetworkAttachmentConfig {

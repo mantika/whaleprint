@@ -26,6 +26,7 @@ type Service struct {
 	Replicas     *uint64           `json:",omitempty"`
 	Constraints  []string          `json:",omitempty"`
 	EndpointMode *string           `json:",omitempty"`
+	Mode         *string           `json:",omitempty"`
 }
 
 // Port is a port as defined in a bundlefile
