@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 
 	"golang.org/x/net/context"
 
@@ -21,6 +22,16 @@ import (
 var Replica1 uint64 = 1
 
 type Services map[string]swarm.Service
+
+func (s Services) Keys() []string {
+	keys := make([]string, 0, len(s))
+	for k := range s {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	return keys
+}
 
 func plan(c *cli.Context) error {
 	stacks, err := getStacks(c)
@@ -57,7 +68,8 @@ func plan(c *cli.Context) error {
 		w := bufio.NewWriter(os.Stdout)
 		sp := NewServicePrinter(w, detail)
 
-		for n, es := range expected {
+		for _, n := range expected.Keys() {
+			es := expected[n]
 			// Only process found target services
 			if _, found := targetMap[es.Spec.Name]; len(targetMap) == 0 || found {
 				if cs, found := current[n]; !found {
@@ -84,7 +96,8 @@ func plan(c *cli.Context) error {
 		}
 
 		// Checks services to remove
-		for n, cs := range current {
+		for _, n := range current.Keys() {
+			cs := current[n]
 			// Only process found target services
 			if _, found := targetMap[cs.Spec.Name]; len(targetMap) == 0 || found {
 				if _, found := expected[n]; !found {
