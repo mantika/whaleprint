@@ -74,11 +74,6 @@ func plan(c *cli.Context) error {
 						color.Cyan("%s\n", es.Spec.Name)
 					}
 
-					return swarm.ServiceMode{
-						Replicated: &swarm.ReplicatedService{
-							Replicas: &Replica1,
-						},
-					}
 					// flush if results
 					if different || detail {
 						w.Flush()
