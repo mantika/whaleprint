@@ -8,7 +8,7 @@ Whaleprint allows to manage DAB (distributed application bundle) as service blue
 ## Rationale
 
 After playing around with docker experimental [DAB's](https://github.com/docker/docker/blob/master/experimental/docker-stacks-and-bundles.md) we realized
-that even though the concept looks promising, the tooling around it was somehow poor and pretty much useless. The only thing that you can do with this as today is 
+that even though the concept looks promising, the tooling around it was somehow poor and pretty much useless. The only thing that you can do with this as today ise 
 generate a DAB from a `docker-compose` yml file and then run `docker stack deploy` or `docker deploy` in order to deploy it to your swarm mode cluster and that's pretty much it. 
 
 We immediately started thinking of different ways to enhance the dev & ops experience with this new feature and we came up with some nice ideas that makes this possible.
@@ -70,7 +70,7 @@ Here's an example:
 }
 ```
 
-As you can see **Replicas**, **Constraints** and **EndpoitMode** are extended features that are not currently supported in the current [DAB specification](https://github.com/docker/docker/blob/master/experimental/docker-stacks-and-bundles.md). Some other features like setting service **PublishedPorts** is also possible.
+As you can see **Replicas**, **Constraints** and **EndpointMode** are extended features that are not currently supported in the current [DAB specification](https://github.com/docker/docker/blob/master/experimental/docker-stacks-and-bundles.md). Some other features like setting service **PublishedPorts** is also possible.
 
 ## FAQ
 
