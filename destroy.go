@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/docker/engine-api/client"
+	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 )

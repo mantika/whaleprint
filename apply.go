@@ -7,10 +7,10 @@ import (
 
 	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/docker/api/client/stack"
-	"github.com/docker/engine-api/client"
-	"github.com/docker/engine-api/types"
-	"github.com/docker/engine-api/types/filters"
-	"github.com/docker/engine-api/types/network"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -113,7 +113,7 @@ func updateNetworks(
 	createOpts := types.NetworkCreate{
 		Labels: stack.GetStackLabels(namespace, nil),
 		Driver: "overlay",
-		IPAM:   network.IPAM{Driver: "default"},
+		IPAM:   &network.IPAM{Driver: "default"},
 	}
 
 	for _, internalName := range networks {

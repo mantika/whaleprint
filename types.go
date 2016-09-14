@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/client/bundlefile"
-	"github.com/docker/engine-api/types/swarm"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/fatih/color"
 )
 
