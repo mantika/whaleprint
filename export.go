@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/docker/docker/api/client/bundlefile"
@@ -21,6 +22,12 @@ func export(c *cli.Context) error {
 	}
 
 	services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{})
+
+	if len(services) == 0 {
+		fmt.Println("No services found to export")
+		return nil
+	}
+
 	if servicesErr != nil {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
@@ -45,13 +52,18 @@ func export(c *cli.Context) error {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
 
+	fmt.Println("Swarm services exported successfuly, services exported: ")
+	for name, _ := range dab.Services {
+		fmt.Println(name)
+	}
+
 	return nil
 }
 
 func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 	serviceBundle := &bundlefile.Service{
 		Image:      service.Spec.TaskTemplate.ContainerSpec.Image,
-		Labels:     service.Spec.TaskTemplate.ContainerSpec.Labels,
+		Labels:     service.Spec.Labels,
 		Command:    service.Spec.TaskTemplate.ContainerSpec.Command,
 		Args:       service.Spec.TaskTemplate.ContainerSpec.Args,
 		Env:        service.Spec.TaskTemplate.ContainerSpec.Env,
