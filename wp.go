@@ -65,6 +65,20 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 			},
 		},
 		{
+			Name: "export",
+			ArgsUsage: `
+Exports current service definitions to a DAB file
+			`,
+			Action: export,
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "output, o",
+					Usage: "Output DAB file name",
+					Value: "services.dab",
+				},
+			},
+		},
+		{
 			Name:  "destroy",
 			Usage: "Destroy a DAB stack",
 			ArgsUsage: `[STACK] [STACK...]

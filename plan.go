@@ -55,7 +55,7 @@ func plan(c *cli.Context) error {
 	for _, stack := range stacks {
 		filter := filters.NewArgs()
 		filter.Add("label", "com.docker.stack.namespace="+stack.Name)
-		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
+		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filters: filter})
 		if servicesErr != nil {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
