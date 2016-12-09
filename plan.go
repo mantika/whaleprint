@@ -55,7 +55,7 @@ func plan(c *cli.Context) error {
 	for _, stack := range stacks {
 		filter := filters.NewArgs()
 		filter.Add("label", "com.docker.stack.namespace="+stack.Name)
-		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filter: filter})
+		services, servicesErr := swarm.ServiceList(context.Background(), types.ServiceListOptions{Filters: filter})
 		if servicesErr != nil {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
@@ -147,7 +147,7 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 			TaskTemplate: swarm.TaskSpec{
 				ContainerSpec: swarm.ContainerSpec{
 					Image:   service.Image,
-					Labels:  service.Labels,
+					Labels:  map[string]string{"com.docker.stack.namespace": stackName},
 					Command: service.Command,
 					Args:    service.Args,
 					Env:     service.Env,
@@ -166,6 +166,11 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 		}
 
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stackName}
+
+		for name, value := range service.Labels {
+			spec.Labels[name] = value
+		}
+
 		spec.Name = fmt.Sprintf("%s_%s", stackName, name)
 
 		// Populate ports
@@ -217,7 +222,7 @@ func convertNetworks(networks []string, namespace string, name string) []swarm.N
 	for _, network := range networks {
 		nets = append(nets, swarm.NetworkAttachmentConfig{
 			Target:  namespace + "_" + network,
-			Aliases: []string{name},
+			Aliases: []string{network, name},
 		})
 	}
 	return nets

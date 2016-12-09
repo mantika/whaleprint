@@ -172,7 +172,7 @@ func (sp *ServicePrinter) _printServiceSpecDiff(namespace string, current, expec
 }
 
 func (sp *ServicePrinter) println(c *color.Color, namespace, current string) {
-	spaces := 50 - len(namespace)
+	spaces := 70 - len(namespace)
 	spaceString := strings.Repeat(" ", spaces)
 	if c != nil {
 		namespace = c.SprintFunc()(namespace)
@@ -182,7 +182,7 @@ func (sp *ServicePrinter) println(c *color.Color, namespace, current string) {
 }
 func (sp *ServicePrinter) printDiffln(c *color.Color, namespace, current, expected string) {
 	action := "=>"
-	spaces := 50 - len(namespace)
+	spaces := 70 - len(namespace)
 	spaceString := strings.Repeat(" ", spaces)
 	if c != nil {
 		namespace = c.SprintFunc()(namespace)
