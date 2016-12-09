@@ -62,15 +62,16 @@ func export(c *cli.Context) error {
 
 func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 	serviceBundle := &bundlefile.Service{
-		Image:      service.Spec.TaskTemplate.ContainerSpec.Image,
-		Labels:     service.Spec.Labels,
-		Command:    service.Spec.TaskTemplate.ContainerSpec.Command,
-		Args:       service.Spec.TaskTemplate.ContainerSpec.Args,
-		Env:        service.Spec.TaskTemplate.ContainerSpec.Env,
-		WorkingDir: &service.Spec.TaskTemplate.ContainerSpec.Dir,
-		User:       &service.Spec.TaskTemplate.ContainerSpec.User,
-		Ports:      []bundlefile.Port{},
-		Networks:   []string{},
+		Image:         service.Spec.TaskTemplate.ContainerSpec.Image,
+		Labels:        service.Spec.TaskTemplate.ContainerSpec.Labels,
+		ServiceLabels: service.Spec.Labels,
+		Command:       service.Spec.TaskTemplate.ContainerSpec.Command,
+		Args:          service.Spec.TaskTemplate.ContainerSpec.Args,
+		Env:           service.Spec.TaskTemplate.ContainerSpec.Env,
+		WorkingDir:    &service.Spec.TaskTemplate.ContainerSpec.Dir,
+		User:          &service.Spec.TaskTemplate.ContainerSpec.User,
+		Ports:         []bundlefile.Port{},
+		Networks:      []string{},
 	}
 
 	for _, portcfg := range service.Endpoint.Ports {

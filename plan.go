@@ -166,6 +166,11 @@ func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Serv
 		}
 
 		spec.Labels = map[string]string{"com.docker.stack.namespace": stackName}
+
+		for name, value := range service.ServiceLabels {
+			spec.Labels[name] = value
+		}
+
 		spec.Name = fmt.Sprintf("%s_%s", stackName, name)
 
 		// Populate ports
