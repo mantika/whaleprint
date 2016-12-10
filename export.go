@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/docker/api/types"
@@ -14,7 +15,6 @@ import (
 )
 
 func export(c *cli.Context) error {
-	output := c.String("output")
 
 	swarm, swarmErr := client.NewEnvClient()
 	if swarmErr != nil {
@@ -32,32 +32,55 @@ func export(c *cli.Context) error {
 		return cli.NewExitError(servicesErr.Error(), 3)
 	}
 
-	dab := &bundlefile.Bundlefile{Version: "0.1", Services: map[string]bundlefile.Service{}}
+	bundles := map[string]*bundlefile.Bundlefile{}
 	for _, service := range services {
+		var dab *bundlefile.Bundlefile
+		stackName := getStackName(service.Spec.Labels)
+
+		if dab = bundles[stackName]; dab == nil {
+			dab = &bundlefile.Bundlefile{Version: "0.1", Services: map[string]bundlefile.Service{}}
+			bundles[stackName] = dab
+		}
 
 		bundleService, err := getBundleService(service)
 		if err != nil {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
+
+		// Remove the stackname from the service in DAB
+		service.Spec.Name = strings.TrimPrefix(service.Spec.Name, fmt.Sprintf("%s_", stackName))
+
 		dab.Services[service.Spec.Name] = *bundleService
+
 	}
 
-	f, err := os.Create(output)
-	if err != nil {
-		return cli.NewExitError(servicesErr.Error(), 3)
-	}
+	for output, bundle := range bundles {
+		f, err := os.Create(fmt.Sprintf("%s.dab", output))
+		if err != nil {
+			return cli.NewExitError(servicesErr.Error(), 3)
+		}
 
-	err = json.NewEncoder(f).Encode(dab)
-	if err != nil {
-		return cli.NewExitError(servicesErr.Error(), 3)
-	}
+		err = json.NewEncoder(f).Encode(bundle)
+		if err != nil {
+			return cli.NewExitError(servicesErr.Error(), 3)
+		}
 
-	fmt.Println("Swarm services exported successfuly, services exported: ")
-	for name, _ := range dab.Services {
-		fmt.Println(name)
+		fmt.Printf("Swarm services exported successfuly for stack: %s \n", output)
+		for name, _ := range bundle.Services {
+			fmt.Println(name)
+		}
+		fmt.Println()
 	}
 
 	return nil
+}
+
+func getStackName(labels map[string]string) string {
+	if stackName, ok := labels["com.docker.stack.namespace"]; ok {
+		return stackName
+	}
+	return "services"
+
 }
 
 func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
