@@ -17,7 +17,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Usage = "Manage DAB files as docker swarm service blueprints"
-	app.Version = "0.0.2"
+	app.Version = "0.0.3"
 
 	app.Commands = []cli.Command{
 		{
