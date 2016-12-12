@@ -97,6 +97,13 @@ func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 		Networks:      []string{},
 	}
 
+	if service.Spec.Mode.Global != nil {
+		global := "global"
+		serviceBundle.Mode = &global
+	} else {
+		serviceBundle.Replicas = service.Spec.Mode.Replicated.Replicas
+	}
+
 	for _, portcfg := range service.Endpoint.Spec.Ports {
 		port := bundlefile.Port{
 			Protocol:      string(portcfg.Protocol),
