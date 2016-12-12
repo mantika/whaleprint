@@ -86,8 +86,8 @@ func getStackName(labels map[string]string) string {
 func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 	serviceBundle := &bundlefile.Service{
 		Image:         service.Spec.TaskTemplate.ContainerSpec.Image,
-		Labels:        service.Spec.TaskTemplate.ContainerSpec.Labels,
-		ServiceLabels: service.Spec.Labels,
+		ServiceLabels: service.Spec.TaskTemplate.ContainerSpec.Labels,
+		Labels:        service.Spec.Labels,
 		Command:       service.Spec.TaskTemplate.ContainerSpec.Command,
 		Args:          service.Spec.TaskTemplate.ContainerSpec.Args,
 		Env:           service.Spec.TaskTemplate.ContainerSpec.Env,
@@ -97,7 +97,7 @@ func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 		Networks:      []string{},
 	}
 
-	for _, portcfg := range service.Endpoint.Ports {
+	for _, portcfg := range service.Endpoint.Spec.Ports {
 		port := bundlefile.Port{
 			Protocol:      string(portcfg.Protocol),
 			Port:          portcfg.TargetPort,
