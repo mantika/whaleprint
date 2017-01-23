@@ -14,19 +14,20 @@ type Bundlefile struct {
 
 // Service is a service from a bundlefile
 type Service struct {
-	Image        string
-	Command      []string          `json:",omitempty"`
-	Args         []string          `json:",omitempty"`
-	Env          []string          `json:",omitempty"`
-	Labels       map[string]string `json:",omitempty"`
-	Ports        []Port            `json:",omitempty"`
-	WorkingDir   *string           `json:",omitempty"`
-	User         *string           `json:",omitempty"`
-	Networks     []string          `json:",omitempty"`
-	Replicas     *uint64           `json:",omitempty"`
-	Constraints  []string          `json:",omitempty"`
-	EndpointMode *string           `json:",omitempty"`
-	Mode         *string           `json:",omitempty"`
+	Image         string
+	Command       []string          `json:",omitempty"`
+	Args          []string          `json:",omitempty"`
+	Env           []string          `json:",omitempty"`
+	Labels        map[string]string `json:",omitempty"`
+	ServiceLabels map[string]string `json:",omitempty"`
+	Ports         []Port            `json:",omitempty"`
+	WorkingDir    *string           `json:",omitempty"`
+	User          *string           `json:",omitempty"`
+	Networks      []string          `json:",omitempty"`
+	Replicas      *uint64           `json:",omitempty"`
+	Constraints   []string          `json:",omitempty"`
+	EndpointMode  *string           `json:",omitempty"`
+	Mode          *string           `json:",omitempty"`
 }
 
 // Port is a port as defined in a bundlefile

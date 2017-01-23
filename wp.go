@@ -17,12 +17,12 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Usage = "Manage DAB files as docker swarm service blueprints"
-	app.Version = "0.0.2"
+	app.Version = "0.0.3"
 
 	app.Commands = []cli.Command{
 		{
 			Name:  "plan",
-			Usage: "Plan DAB whaleprint",
+			Usage: "Plan service deployment",
 			ArgsUsage: `[STACK] [STACK...]
 
 Prints an execultion plan to review before applying changes.
@@ -46,7 +46,7 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 		},
 		{
 			Name:  "apply",
-			Usage: "Apply DAB whaleprint",
+			Usage: "Apply service deployment",
 			ArgsUsage: `[STACK] [STACK...]
 
 Applies the execution plan returned by the "whaleprint plan" command
@@ -63,6 +63,14 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 					Usage: "Process specified services only (default [])",
 				},
 			},
+		},
+		{
+			Name:  "export",
+			Usage: "Export stacks to DAB",
+			ArgsUsage: `
+Exports current service definitions to a DAB file
+			`,
+			Action: export,
 		},
 		{
 			Name:  "destroy",
