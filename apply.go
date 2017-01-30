@@ -73,7 +73,7 @@ func apply(c *cli.Context) error {
 				if currentService, found := current[name]; found {
 					if sp.PrintServiceSpecDiff(currentService.Spec, expectedService.Spec) {
 						cyan.Printf("Updating service %s\n", name)
-						_, servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+						_, servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{EncodedRegistryAuth: c.String("with-registry-auth")})
 						if servicesErr != nil {
 							return cli.NewExitError(servicesErr.Error(), 3)
 						}
@@ -81,7 +81,7 @@ func apply(c *cli.Context) error {
 				} else {
 					// service doesn't exist, need to create a new one
 					cyan.Printf("Creating service %s\n", name)
-					_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{})
+					_, servicesErr := swarm.ServiceCreate(context.Background(), expectedService.Spec, types.ServiceCreateOptions{EncodedRegistryAuth: c.String("with-registry-auth")})
 					if servicesErr != nil {
 						return cli.NewExitError(servicesErr.Error(), 3)
 					}

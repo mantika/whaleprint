@@ -62,6 +62,10 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 					Name:  "target",
 					Usage: "Process specified services only (default [])",
 				},
+				cli.StringSliceFlag{
+					Name:  "with-registry-auth",
+					Usage: "Registry auth parameter for private images",
+				},
 			},
 		},
 		{
