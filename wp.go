@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/docker/docker/api/client/bundlefile"
+	"github.com/docker/docker/cli/compose/loader"
+	composetypes "github.com/docker/docker/cli/compose/types"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -122,19 +122,19 @@ func getStacksFromCWD() []string {
 		log.Fatal("Error fetching files from current dir", err)
 	}
 
-	dabs := []string{}
+	stackFiles := []string{}
 
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".dab") {
-			dabs = append(dabs, strings.TrimSuffix(file.Name(), ".dab"))
+		if strings.HasSuffix(file.Name(), ".yml") {
+			stackFiles = append(stackFiles, strings.TrimSuffix(file.Name(), ".yml"))
 		}
 	}
 
-	if len(dabs) == 0 {
-		log.Fatal("No DABs found in current directory")
+	if len(stackFiles) == 0 {
+		log.Fatal("No stacks found in current directory")
 	}
 
-	return dabs
+	return stackFiles
 }
 
 func getStacks(c *cli.Context) ([]Stack, error) {
@@ -146,50 +146,94 @@ func getStacks(c *cli.Context) ([]Stack, error) {
 	defs := []stackDefinition{}
 
 	stackNames := c.Args()
-	dabFile := c.String("file")
+	stackFile := c.String("file")
 
-	if dabFile != "" {
+	if stackFile != "" {
 		if len(stackNames) > 1 {
 			return nil, cli.NewExitError("You can only specify one stack name when using -f", 1)
 		} else if len(stackNames) == 1 {
-			defs = append(defs, stackDefinition{name: stackNames[0], file: dabFile})
+			defs = append(defs, stackDefinition{name: stackNames[0], file: stackFile})
 		} else {
-			stackName := strings.TrimSuffix(filepath.Base(dabFile), filepath.Ext(dabFile))
-			defs = append(defs, stackDefinition{name: stackName, file: dabFile})
+			stackName := strings.TrimSuffix(filepath.Base(stackFile), filepath.Ext(stackFile))
+			defs = append(defs, stackDefinition{name: stackName, file: stackFile})
 		}
 	} else if len(stackNames) == 0 {
 		stackNames = getStacksFromCWD()
 
 		for _, name := range stackNames {
-			dabFile := fmt.Sprintf("%s.dab", name)
-			defs = append(defs, stackDefinition{name: name, file: dabFile})
+			stackFile := fmt.Sprintf("%s.yml", name)
+			defs = append(defs, stackDefinition{name: name, file: stackFile})
 		}
 	} else if len(stackNames) > 0 {
 		for _, name := range stackNames {
-			dabFile := fmt.Sprintf("%s.dab", name)
-			defs = append(defs, stackDefinition{name: name, file: dabFile})
+			stackFile := fmt.Sprintf("%s.yml", name)
+			defs = append(defs, stackDefinition{name: name, file: stackFile})
 		}
 	}
 
 	stacks := make([]Stack, len(defs))
 	for i, def := range defs {
-		var dabReader io.Reader
-		if u, e := url.Parse(def.file); e == nil && u.IsAbs() {
-			// DAB file seems to be remote, try to download it first
-			return nil, cli.NewExitError("Not implemented", 2)
-		} else {
-			if file, err := os.Open(def.file); err != nil {
-				return nil, cli.NewExitError(err.Error(), 3)
-			} else {
-				dabReader = file
-			}
+
+		configFile, err := getConfigFile(def.file)
+		if err != nil {
+			return nil, cli.NewExitError(err.Error(), 3)
 		}
 
-		bundle, bundleErr := bundlefile.LoadFile(dabReader)
-		if bundleErr != nil {
-			return nil, cli.NewExitError(bundleErr.Error(), 3)
+		details, err := getConfigDetails(configFile)
+		if err != nil {
+			return nil, cli.NewExitError(err.Error(), 3)
 		}
-		stacks[i] = Stack{Name: def.name, Bundle: bundle}
+
+		config, err := loader.Load(details)
+
+		if err != nil {
+			return nil, cli.NewExitError(err.Error(), 3)
+		}
+		stacks[i] = Stack{Name: def.name, Config: config}
 	}
 	return stacks, nil
+}
+
+func getConfigDetails(file *composetypes.ConfigFile) (composetypes.ConfigDetails, error) {
+	var details composetypes.ConfigDetails
+	var err error
+
+	details.WorkingDir, err = os.Getwd()
+	if err != nil {
+		return details, err
+	}
+
+	details.ConfigFiles = []composetypes.ConfigFile{*file}
+	details.Environment, err = buildEnvironment(os.Environ())
+	if err != nil {
+		return details, err
+	}
+	return details, nil
+}
+func buildEnvironment(env []string) (map[string]string, error) {
+	result := make(map[string]string, len(env))
+	for _, s := range env {
+		// if value is empty, s is like "K=", not "K".
+		if !strings.Contains(s, "=") {
+			return result, errors.Errorf("unexpected environment %q", s)
+		}
+		kv := strings.SplitN(s, "=", 2)
+		result[kv[0]] = kv[1]
+	}
+	return result, nil
+}
+
+func getConfigFile(filename string) (*composetypes.ConfigFile, error) {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	config, err := loader.ParseYAML(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return &composetypes.ConfigFile{
+		Filename: filename,
+		Config:   config,
+	}, nil
 }

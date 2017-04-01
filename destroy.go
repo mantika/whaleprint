@@ -20,8 +20,8 @@ func destroy(c *cli.Context) error {
 
 	var services []string
 	for _, stack := range stacks {
-		for name, _ := range stack.Bundle.Services {
-			services = append(services, fmt.Sprintf("%s_%s", stack.Name, name))
+		for _, service := range stack.Config.Services {
+			services = append(services, fmt.Sprintf("%s_%s", stack.Name, service.Name))
 		}
 	}
 

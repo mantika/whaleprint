@@ -36,7 +36,7 @@ func output(c *cli.Context) error {
 			color.Green("%s\n", s.Spec.Name)
 			fmt.Println("  - Published Ports")
 
-			for _, port := range s.Endpoint.Ports {
+			for _, port := range s.Spec.EndpointSpec.Ports {
 				fmt.Printf("     %d => %d\n", port.PublishedPort, port.TargetPort)
 			}
 

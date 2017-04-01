@@ -42,7 +42,7 @@ func export(c *cli.Context) error {
 			bundles[stackName] = dab
 		}
 
-		bundleService, err := getBundleService(service)
+		bundleService, err := getBundleService(stackName, service)
 		if err != nil {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
@@ -83,7 +83,7 @@ func getStackName(labels map[string]string) string {
 
 }
 
-func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
+func getBundleService(stackName string, service swarm.Service) (*bundlefile.Service, error) {
 	serviceBundle := &bundlefile.Service{
 		Image:         service.Spec.TaskTemplate.ContainerSpec.Image,
 		ServiceLabels: service.Spec.TaskTemplate.ContainerSpec.Labels,
@@ -114,7 +114,7 @@ func getBundleService(service swarm.Service) (*bundlefile.Service, error) {
 	}
 
 	for _, net := range service.Spec.Networks {
-		serviceBundle.Networks = append(serviceBundle.Networks, net.Aliases...)
+		serviceBundle.Networks = append(serviceBundle.Networks, net.Target)
 	}
 
 	return serviceBundle, nil
