@@ -125,10 +125,10 @@ func translateNetworkToIds(services *Services, cli *client.Client, stackName str
 	}
 
 	for _, service := range *services {
-		for i, network := range service.Spec.Networks {
+		for i, network := range service.Spec.TaskTemplate.Networks {
 			for _, enet := range existingNetworks {
 				if enet.Name == network.Target {
-					service.Spec.Networks[i].Target = enet.ID
+					service.Spec.TaskTemplate.Networks[i].Target = enet.ID
 					network.Target = enet.ID
 				}
 			}
@@ -136,7 +136,7 @@ func translateNetworkToIds(services *Services, cli *client.Client, stackName str
 	}
 }
 
-func getConfigServicesSpec(config *composetypes.Config, stackName string, cli client.SecretAPIClient) (Services, error) {
+func getConfigServicesSpec(config *composetypes.Config, stackName string, cli client.CommonAPIClient) (Services, error) {
 	services := Services{}
 	specServices, err := convert.Services(convert.NewNamespace(stackName), config, cli)
 	if err != nil {
@@ -152,6 +152,11 @@ func getConfigServicesSpec(config *composetypes.Config, stackName string, cli cl
 		if s.EndpointSpec.Mode == "" {
 			s.EndpointSpec.Mode = "vip"
 		}
+
+		if s.UpdateConfig != nil && s.UpdateConfig.FailureAction == "" {
+			s.UpdateConfig.FailureAction = "pause"
+		}
+
 		fqname := fmt.Sprintf("%s_%s", stackName, n)
 		s.Name = fqname
 		var service = services[fqname]

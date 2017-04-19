@@ -49,7 +49,7 @@ func destroy(c *cli.Context) error {
 		color.Cyan("Removing service %s\n", service)
 		servicesErr := swarm.ServiceRemove(context.Background(), service)
 		if servicesErr != nil {
-			log.Println("Error removing service %s:, %s", service, err)
+			log.Printf("Error removing service %s:, %s", service, servicesErr)
 		}
 	}
 

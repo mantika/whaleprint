@@ -16,7 +16,7 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Usage = "Manage DAB files as docker swarm service blueprints"
+	app.Usage = "Manage Stack files as docker swarm service blueprints"
 	app.Version = "0.0.3"
 
 	app.Commands = []cli.Command{
@@ -26,13 +26,13 @@ func main() {
 			ArgsUsage: `[STACK] [STACK...]
 
 Prints an execultion plan to review before applying changes.
-Whaleprint will look for .dab files or use the stack name to load the DAB file.
+Whaleprint will look for .yml files or use the stack name to load them.
 			`,
 			Action: plan,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
-					Usage: "DAB file to use",
+					Usage: "Stack file to use",
 				},
 				cli.BoolFlag{
 					Name:  "detail",
@@ -50,13 +50,13 @@ Whaleprint will look for .dab files or use the stack name to load the DAB file.
 			ArgsUsage: `[STACK] [STACK...]
 
 Applies the execution plan returned by the "whaleprint plan" command
-Whaleprint will look for .dab files or use the stack name to load the DAB file.
+Whaleprint will look for .yml files or use the stack name to load the  file.
 			`,
 			Action: apply,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
-					Usage: "DAB file to use",
+					Usage: "Stack file to use",
 				},
 				cli.StringSliceFlag{
 					Name:  "target",
@@ -74,21 +74,21 @@ Exports current service definitions to a DAB file
 		},
 		{
 			Name:  "destroy",
-			Usage: "Destroy a DAB stack",
+			Usage: "Destroy a stack",
 			ArgsUsage: `[STACK] [STACK...]
 
-Destroys the stack present in the DAB file  
-Whaleprint will look for .dab files use the stack name to load the DAB file.
+Destroys the stack present in the stack file  
+Whaleprint will look for .yml files use the stack name to load the stack file.
 			`,
 			Action: destroy,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
-					Usage: "DAB file to use",
+					Usage: "Stack file to use",
 				},
 				cli.BoolFlag{
 					Name:  "force",
-					Usage: "Ignore destroy DAB file to useconfirmation",
+					Usage: "Ignore destroy stack file to useconfirmation",
 				},
 				cli.StringSliceFlag{
 					Name:  "target",
@@ -107,7 +107,7 @@ Show important information for the specified stacks.
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "file, f",
-					Usage: "DAB file to use",
+					Usage: "Stack file to use",
 				},
 			},
 		},
