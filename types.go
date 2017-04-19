@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/cli/compose/types"
 	"github.com/fatih/color"
 )
 
@@ -17,7 +17,7 @@ var yellow = color.New(color.FgYellow)
 
 type Stack struct {
 	Name   string
-	Bundle *bundlefile.Bundlefile
+	Config *types.Config
 }
 
 type ServicePrinter struct {
@@ -172,7 +172,7 @@ func (sp *ServicePrinter) _printServiceSpecDiff(namespace string, current, expec
 }
 
 func (sp *ServicePrinter) println(c *color.Color, namespace, current string) {
-	spaces := 70 - len(namespace)
+	spaces := 85 - len(namespace)
 	spaceString := strings.Repeat(" ", spaces)
 	if c != nil {
 		namespace = c.SprintFunc()(namespace)
@@ -182,7 +182,7 @@ func (sp *ServicePrinter) println(c *color.Color, namespace, current string) {
 }
 func (sp *ServicePrinter) printDiffln(c *color.Color, namespace, current, expected string) {
 	action := "=>"
-	spaces := 70 - len(namespace)
+	spaces := 85 - len(namespace)
 	spaceString := strings.Repeat(" ", spaces)
 	if c != nil {
 		namespace = c.SprintFunc()(namespace)

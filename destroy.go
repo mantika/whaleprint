@@ -20,8 +20,8 @@ func destroy(c *cli.Context) error {
 
 	var services []string
 	for _, stack := range stacks {
-		for name, _ := range stack.Bundle.Services {
-			services = append(services, fmt.Sprintf("%s_%s", stack.Name, name))
+		for _, service := range stack.Config.Services {
+			services = append(services, fmt.Sprintf("%s_%s", stack.Name, service.Name))
 		}
 	}
 
@@ -49,7 +49,7 @@ func destroy(c *cli.Context) error {
 		color.Cyan("Removing service %s\n", service)
 		servicesErr := swarm.ServiceRemove(context.Background(), service)
 		if servicesErr != nil {
-			log.Println("Error removing service %s:, %s", service, err)
+			log.Printf("Error removing service %s:, %s", service, servicesErr)
 		}
 	}
 

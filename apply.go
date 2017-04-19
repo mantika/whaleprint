@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	composetypes "github.com/docker/docker/cli/compose/types"
 	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
@@ -43,7 +43,10 @@ func apply(c *cli.Context) error {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
 
-		expected := getBundleServicesSpec(stack.Bundle, stack.Name)
+		expected, err := getConfigServicesSpec(stack.Config, stack.Name, swarm)
+		if err != nil {
+			return cli.NewExitError(err.Error(), 3)
+		}
 		translateNetworkToIds(&expected, swarm, stack.Name)
 		current := getSwarmServicesSpecForStack(services)
 
@@ -61,7 +64,7 @@ func apply(c *cli.Context) error {
 			}
 		}
 
-		err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(stack.Bundle.Services), stack.Name)
+		err = updateNetworks(context.Background(), swarm, getUniqueNetworkNames(stack.Config.Services), stack.Name)
 
 		if err != nil {
 			log.Fatal("Error updating networks when creating services", err)
@@ -73,7 +76,7 @@ func apply(c *cli.Context) error {
 				if currentService, found := current[name]; found {
 					if sp.PrintServiceSpecDiff(currentService.Spec, expectedService.Spec) {
 						cyan.Printf("Updating service %s\n", name)
-						_, servicesErr := swarm.ServiceUpdate(context.Background(), currentService.ID, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
+						_, servicesErr := swarm.ServiceUpdate(context.Background(), currentService.Spec.Name, currentService.Version, expectedService.Spec, types.ServiceUpdateOptions{})
 						if servicesErr != nil {
 							return cli.NewExitError(servicesErr.Error(), 3)
 						}
@@ -131,15 +134,16 @@ func updateNetworks(
 	return nil
 }
 
-func getUniqueNetworkNames(services map[string]bundlefile.Service) []string {
+func getUniqueNetworkNames(services []composetypes.ServiceConfig) []string {
 	networkSet := make(map[string]bool)
 	for _, service := range services {
-		for _, network := range service.Networks {
-			networkSet[network] = true
+		for name, _ := range service.Networks {
+			networkSet[name] = true
 		}
 	}
 
-	networks := []string{}
+	// add default network as stack deploy does
+	networks := []string{"default"}
 	for network := range networkSet {
 		networks = append(networks, network)
 	}

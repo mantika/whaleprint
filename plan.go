@@ -9,11 +9,12 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/docker/docker/api/client/bundlefile"
 	"github.com/docker/docker/api/client/stack"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/cli/compose/convert"
+	composetypes "github.com/docker/docker/cli/compose/types"
 	"github.com/docker/docker/client"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
@@ -60,7 +61,10 @@ func plan(c *cli.Context) error {
 			return cli.NewExitError(servicesErr.Error(), 3)
 		}
 
-		expected := getBundleServicesSpec(stack.Bundle, stack.Name)
+		expected, err := getConfigServicesSpec(stack.Config, stack.Name, swarm)
+		if err != nil {
+			return cli.NewExitError(err.Error(), 3)
+		}
 		translateNetworkToIds(&expected, swarm, stack.Name)
 
 		current := getSwarmServicesSpecForStack(services)
@@ -114,13 +118,6 @@ func plan(c *cli.Context) error {
 	return nil
 }
 
-func safeDereference(p *string) string {
-	if p == nil {
-		return ""
-	}
-	return *p
-}
-
 func translateNetworkToIds(services *Services, cli *client.Client, stackName string) {
 	existingNetworks, err := stack.GetNetworks(context.Background(), cli, stackName)
 	if err != nil {
@@ -128,10 +125,10 @@ func translateNetworkToIds(services *Services, cli *client.Client, stackName str
 	}
 
 	for _, service := range *services {
-		for i, network := range service.Spec.Networks {
+		for i, network := range service.Spec.TaskTemplate.Networks {
 			for _, enet := range existingNetworks {
 				if enet.Name == network.Target {
-					service.Spec.Networks[i].Target = enet.ID
+					service.Spec.TaskTemplate.Networks[i].Target = enet.ID
 					network.Target = enet.ID
 				}
 			}
@@ -139,97 +136,40 @@ func translateNetworkToIds(services *Services, cli *client.Client, stackName str
 	}
 }
 
-func getBundleServicesSpec(bundle *bundlefile.Bundlefile, stackName string) Services {
-	specs := Services{}
-
-	for name, service := range bundle.Services {
-		spec := swarm.ServiceSpec{
-			TaskTemplate: swarm.TaskSpec{
-				ContainerSpec: swarm.ContainerSpec{
-					Image:   service.Image,
-					Labels:  map[string]string{"com.docker.stack.namespace": stackName},
-					Command: service.Command,
-					Args:    service.Args,
-					Env:     service.Env,
-					Dir:     safeDereference(service.WorkingDir),
-					User:    safeDereference(service.User),
-				},
-				Placement: &swarm.Placement{Constraints: service.Constraints},
-			},
-			Networks: convertNetworks(service.Networks, stackName, name),
-		}
-
-		spec.Mode = getServiceMode(service.Mode)
-
-		if service.Replicas != nil {
-			spec.Mode.Replicated.Replicas = service.Replicas
-		}
-
-		spec.Labels = map[string]string{"com.docker.stack.namespace": stackName}
-
-		for name, value := range service.Labels {
-			spec.Labels[name] = value
-		}
-
-		spec.Name = fmt.Sprintf("%s_%s", stackName, name)
-
-		// Populate ports
-		ports := []swarm.PortConfig{}
-		for _, port := range service.Ports {
-			p := swarm.PortConfig{
-				TargetPort:    port.Port,
-				Protocol:      swarm.PortConfigProtocol(port.Protocol),
-				PublishedPort: port.PublishedPort,
-			}
-
-			ports = append(ports, p)
-		}
-		// Hardcode resolution mode to VIP as it's the default with dab
-		mode := "vip"
-		if service.EndpointMode != nil {
-			if *service.EndpointMode != "dnsrr" && *service.EndpointMode != "vip" {
-				log.Fatalf("Invalid mode \"%s\" for service %s, only \"dnsrr\" or \"vip\" is allowed", *service.EndpointMode, spec.Name)
-			}
-			mode = *service.EndpointMode
-		}
-		spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports, Mode: swarm.ResolutionMode(mode)}
-
-		service := swarm.Service{}
-		service.ID = spec.Name
-		service.Spec = spec
-
-		specs[spec.Name] = service
+func getConfigServicesSpec(config *composetypes.Config, stackName string, cli client.CommonAPIClient) (Services, error) {
+	services := Services{}
+	specServices, err := convert.Services(convert.NewNamespace(stackName), config, cli)
+	if err != nil {
+		return services, err
 	}
-	return specs
-}
 
-func getServiceMode(mode *string) swarm.ServiceMode {
-	if mode != nil && *mode == "global" {
-		return swarm.ServiceMode{
-			Global: &swarm.GlobalService{},
+	for n, s := range specServices {
+		if s.Mode.Global == nil && s.Mode.Replicated.Replicas == nil {
+			s.Mode.Replicated.Replicas = &Replica1
 		}
-	} else {
-		return swarm.ServiceMode{
-			Replicated: &swarm.ReplicatedService{
-				Replicas: &Replica1,
-			},
-		}
-	}
-}
 
-func convertNetworks(networks []string, namespace string, name string) []swarm.NetworkAttachmentConfig {
-	nets := []swarm.NetworkAttachmentConfig{}
-	for _, network := range networks {
-		nets = append(nets, swarm.NetworkAttachmentConfig{
-			Target:  namespace + "_" + network,
-			Aliases: []string{network, name},
-		})
+		// hardcode VIP as it's the default service mode
+		if s.EndpointSpec.Mode == "" {
+			s.EndpointSpec.Mode = "vip"
+		}
+
+		if s.UpdateConfig != nil && s.UpdateConfig.FailureAction == "" {
+			s.UpdateConfig.FailureAction = "pause"
+		}
+
+		fqname := fmt.Sprintf("%s_%s", stackName, n)
+		s.Name = fqname
+		var service = services[fqname]
+		service.Spec = s
+		services[fqname] = service
 	}
-	return nets
+
+	return services, nil
+
 }
 
 func getSwarmServicesSpecForStack(services []swarm.Service) Services {
-	specs := Services{}
+	specs := map[string]swarm.Service{}
 
 	for _, service := range services {
 		specs[service.Spec.Name] = service
